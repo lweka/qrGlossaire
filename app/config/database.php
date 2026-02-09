@@ -38,6 +38,10 @@ foreach ($hostsToTry as $host) {
         break;
     } catch (PDOException $e) {
         $lastError = $e;
+        $message = $e->getMessage();
+        if ((string) $e->getCode() === '1045' || strpos($message, '[1045]') !== false) {
+            break;
+        }
     }
 }
 
