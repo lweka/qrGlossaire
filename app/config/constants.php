@@ -1,10 +1,30 @@
 <?php
-const DB_HOST = 'localhost';
-const DB_NAME = 'qr_glossaire';
-const DB_USER = 'root';
-const DB_PASS = '2612@qrglossaire';
+const DB_HOST = 'srv996.hstgr.io';
+const DB_NAME = 'u424760992_qr_glossaire_u';
+const DB_USER = 'u424760992_qr_glossaire';
+const DB_PASS = '2612@Qrglossaire';
 
-const BASE_URL = '/qrGlossaire';
+$baseUrl = '';
+$envBaseUrl = getenv('APP_BASE_URL');
+if ($envBaseUrl !== false && trim($envBaseUrl) !== '') {
+    $normalized = trim($envBaseUrl);
+    $baseUrl = '/' . trim($normalized, '/');
+    if ($baseUrl === '/') {
+        $baseUrl = '';
+    }
+} else {
+    $appRoot = realpath(dirname(__DIR__, 2));
+    $documentRoot = isset($_SERVER['DOCUMENT_ROOT']) ? realpath($_SERVER['DOCUMENT_ROOT']) : false;
+    if ($appRoot !== false && $documentRoot !== false) {
+        $appRootNormalized = str_replace('\\', '/', $appRoot);
+        $documentRootNormalized = rtrim(str_replace('\\', '/', $documentRoot), '/');
+        if ($documentRootNormalized !== '' && strpos($appRootNormalized, $documentRootNormalized) === 0) {
+            $relativePath = trim(substr($appRootNormalized, strlen($documentRootNormalized)), '/');
+            $baseUrl = $relativePath === '' ? '' : '/' . $relativePath;
+        }
+    }
+}
+define('BASE_URL', $baseUrl);
 
 const APP_NAME = 'InviteQR';
 const TOKEN_EXPIRY_DAYS = 7;
