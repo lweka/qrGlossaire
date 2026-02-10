@@ -104,6 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $details = is_array($apiErrors) ? implode(', ', $apiErrors) : '';
                     if (is_array($apiErrors) && in_array('invalid-input-response', $apiErrors, true)) {
                         $errors[] = 'Token reCAPTCHA invalide ou expire. Rechargez la page puis reessayez.';
+                    } elseif (is_array($apiErrors) && in_array('invalid-keys', $apiErrors, true)) {
+                        $errors[] = APP_DEBUG
+                            ? 'Erreur reCAPTCHA. Detail: invalid-keys. Verifiez que RECAPTCHA_SITE_KEY et RECAPTCHA_SECRET_KEY sont de la meme paire (source active: ' . RECAPTCHA_SECRET_KEY_SOURCE . ').'
+                            : 'Configuration reCAPTCHA invalide.';
                     } else {
                         $errors[] = (APP_DEBUG && $details !== '')
                             ? 'Erreur reCAPTCHA. Detail: ' . $details

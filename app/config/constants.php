@@ -35,10 +35,40 @@ const RECAPTCHA_SECRET_KEY_VALUE = '6LcO3mYsAAAAAOIXz0tyGT3t77RnBKkjjVLJDNsY';
 const RECAPTCHA_PROJECT_ID = 'qrglossaire';
 const RECAPTCHA_ACTION_REGISTER = 'register';
 const RECAPTCHA_MIN_SCORE = 0.5;
-$recaptchaSecret = getenv('RECAPTCHA_SECRET_KEY');
-$recaptchaSecret = $recaptchaSecret === false ? '' : trim((string) $recaptchaSecret);
-if ($recaptchaSecret === '' || strpos($recaptchaSecret, 'AQ.') === 0) {
-    $recaptchaSecret = trim((string) RECAPTCHA_SECRET_KEY_VALUE);
+$recaptchaSitePrefix = substr((string) RECAPTCHA_SITE_KEY, 0, 10);
+$envRecaptchaSecret = getenv('RECAPTCHA_SECRET_KEY');
+$envRecaptchaSecret = $envRecaptchaSecret === false ? '' : trim((string) $envRecaptchaSecret);
+$fileRecaptchaSecret = trim((string) RECAPTCHA_SECRET_KEY_VALUE);
+$envLooksLikeApiKey = strpos($envRecaptchaSecret, 'AQ.') === 0;
+$fileLooksLikeApiKey = strpos($fileRecaptchaSecret, 'AQ.') === 0;
+$envMatchesSiteKey = $envRecaptchaSecret !== '' && $recaptchaSitePrefix !== '' && strpos($envRecaptchaSecret, $recaptchaSitePrefix) === 0;
+$fileMatchesSiteKey = $fileRecaptchaSecret !== '' && $recaptchaSitePrefix !== '' && strpos($fileRecaptchaSecret, $recaptchaSitePrefix) === 0;
+
+$recaptchaSecret = '';
+$recaptchaSecretSource = '';
+if ($envRecaptchaSecret !== '' && !$envLooksLikeApiKey) {
+    $recaptchaSecret = $envRecaptchaSecret;
+    $recaptchaSecretSource = 'env';
 }
+if ($fileRecaptchaSecret !== '' && !$fileLooksLikeApiKey) {
+    if (
+        $recaptchaSecret === ''
+        || ($fileMatchesSiteKey && !$envMatchesSiteKey)
+    ) {
+        $recaptchaSecret = $fileRecaptchaSecret;
+        $recaptchaSecretSource = 'constants';
+    }
+}
+if ($recaptchaSecret === '') {
+    if ($fileRecaptchaSecret !== '') {
+        $recaptchaSecret = $fileRecaptchaSecret;
+        $recaptchaSecretSource = 'constants-fallback';
+    } else {
+        $recaptchaSecret = $envRecaptchaSecret;
+        $recaptchaSecretSource = $envRecaptchaSecret !== '' ? 'env-fallback' : 'none';
+    }
+}
+
 define('RECAPTCHA_SECRET_KEY', $recaptchaSecret);
+define('RECAPTCHA_SECRET_KEY_SOURCE', $recaptchaSecretSource);
 const APP_DEBUG = true;
