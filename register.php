@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         if (RECAPTCHA_SECRET_KEY === '' || strpos(RECAPTCHA_SECRET_KEY, 'AQ.') === 0) {
             $errors[] = APP_DEBUG
-                ? 'Configuration reCAPTCHA invalide. Utilisez la secret key (RECAPTCHA_SECRET_KEY), pas une API key (AQ...).'
+                ? 'Configuration reCAPTCHA invalide. Renseignez RECAPTCHA_SECRET_KEY (env) ou RECAPTCHA_SECRET_KEY_VALUE (constants.php), pas une API key (AQ...).'
                 : 'Erreur de configuration reCAPTCHA.';
         }
     }
