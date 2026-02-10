@@ -1,7 +1,7 @@
 <?php
 const DB_HOST = 'srv996.hstgr.io';
-const DB_NAME = 'u424760992_qr_glossaire_u';
-const DB_USER = 'u424760992_qr_glossaire';
+const DB_NAME = 'u424760992_qr_glossaire';
+const DB_USER = 'u424760992_qr_glossaire_u';
 const DB_PASS = '2612@Qrglossaire';
 
 $baseUrl = '';
