@@ -40,10 +40,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
+        if (RECAPTCHA_SECRET_KEY === '' || strpos(RECAPTCHA_SECRET_KEY, 'AQ.') === 0) {
+            $errors[] = APP_DEBUG
+                ? 'Configuration reCAPTCHA invalide. Utilisez la secret key (RECAPTCHA_SECRET_KEY), pas une API key (AQ...).'
+                : 'Erreur de configuration reCAPTCHA.';
+        }
+    }
+
+    if (empty($errors)) {
         // Use siteverify (secret + token), compatible with browser-generated tokens.
         $url = 'https://www.google.com/recaptcha/api/siteverify';
         $payload = http_build_query([
-            'secret' => RECAPTCHA_API_KEY,
+            'secret' => RECAPTCHA_SECRET_KEY,
             'response' => $recaptchaToken,
             'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
         ]);
@@ -94,9 +102,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!$valid) {
                     $details = is_array($apiErrors) ? implode(', ', $apiErrors) : '';
-                    $errors[] = (APP_DEBUG && $details !== '')
-                        ? 'Erreur reCAPTCHA. Detail: ' . $details
-                        : 'Verification reCAPTCHA invalide.';
+                    if (is_array($apiErrors) && in_array('invalid-input-response', $apiErrors, true)) {
+                        $errors[] = 'Token reCAPTCHA invalide ou expire. Rechargez la page puis reessayez.';
+                    } else {
+                        $errors[] = (APP_DEBUG && $details !== '')
+                            ? 'Erreur reCAPTCHA. Detail: ' . $details
+                            : 'Verification reCAPTCHA invalide.';
+                    }
                 } elseif ($action !== RECAPTCHA_ACTION_REGISTER) {
                     $errors[] = 'Verification reCAPTCHA invalide.';
                 } elseif ($riskScore < RECAPTCHA_MIN_SCORE) {
