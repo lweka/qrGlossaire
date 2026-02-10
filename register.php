@@ -7,7 +7,7 @@ $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = "Token de sécurité invalide.";
+        $errors[] = 'Token de securite invalide.';
     }
 
     $fullName = sanitizeInput($_POST['full_name'] ?? '');
@@ -16,38 +16,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $eventType = sanitizeInput($_POST['event_type'] ?? '');
     $eventDate = sanitizeInput($_POST['event_date'] ?? '');
     $password = $_POST['password'] ?? '';
-    $recaptchaToken = sanitizeInput($_POST['recaptcha_token'] ?? '');
+    $recaptchaToken = trim($_POST['recaptcha_token'] ?? '');
 
     if ($fullName === '' || $email === '' || $phone === '' || $eventType === '' || $eventDate === '' || $password === '') {
-        $errors[] = "Veuillez remplir tous les champs requis.";
+        $errors[] = 'Veuillez remplir tous les champs requis.';
     }
 
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Adresse email invalide.";
+        $errors[] = 'Adresse email invalide.';
     } else {
         $emailDomain = strtolower(substr(strrchr($email, '@') ?: '', 1));
         if ($emailDomain !== 'gmail.com') {
-            $errors[] = "Seules les adresses Gmail sont acceptées.";
+            $errors[] = 'Seules les adresses Gmail sont acceptees.';
         }
     }
 
     if (strlen($password) < 8) {
-        $errors[] = "Le mot de passe doit contenir au moins 8 caractères.";
+        $errors[] = 'Le mot de passe doit contenir au moins 8 caracteres.';
     }
 
     if ($recaptchaToken === '') {
-        $errors[] = "Veuillez valider le reCAPTCHA.";
+        $errors[] = 'Veuillez valider le reCAPTCHA.';
     }
 
     if (empty($errors)) {
-        $url = 'https://recaptchaenterprise.googleapis.com/v1/projects/' . RECAPTCHA_PROJECT_ID . '/assessments?key=' . RECAPTCHA_API_KEY;
-        $payload = json_encode([
-            'event' => [
-                'token' => $recaptchaToken,
-                'expectedAction' => RECAPTCHA_ACTION_REGISTER,
-                'siteKey' => RECAPTCHA_SITE_KEY,
-            ],
-        ], JSON_UNESCAPED_SLASHES);
+        // Use siteverify (secret + token), compatible with browser-generated tokens.
+        $url = 'https://www.google.com/recaptcha/api/siteverify';
+        $payload = http_build_query([
+            'secret' => RECAPTCHA_API_KEY,
+            'response' => $recaptchaToken,
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]);
 
         $response = null;
         $errorDetail = null;
@@ -56,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ch = curl_init($url);
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/x-www-form-urlencoded']);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
             $response = curl_exec($ch);
             $curlError = curl_error($ch);
@@ -68,50 +67,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $context = stream_context_create([
                 'http' => [
                     'method' => 'POST',
-                    'header' => "Content-Type: application/json\r\n",
+                    'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
                     'content' => $payload,
                     'timeout' => 10,
                 ],
             ]);
             $response = @file_get_contents($url, false, $context);
             if ($response === false) {
-                $errorDetail = 'file_get_contents a échoué.';
+                $errorDetail = 'siteverify request failed.';
             }
         }
 
         if (!$response) {
             $errors[] = APP_DEBUG && $errorDetail
-                ? "Erreur reCAPTCHA. Détail: " . $errorDetail
-                : "Erreur reCAPTCHA. Veuillez réessayer.";
+                ? 'Erreur reCAPTCHA. Detail: ' . $errorDetail
+                : 'Erreur reCAPTCHA. Veuillez reessayer.';
         } else {
             $result = json_decode($response, true);
-            $tokenProps = $result['tokenProperties'] ?? [];
-            $riskScore = $result['riskAnalysis']['score'] ?? 0;
-            $action = $tokenProps['action'] ?? '';
-            $valid = $tokenProps['valid'] ?? false;
-            $apiError = $result['error']['message'] ?? null;
+            if (!is_array($result)) {
+                $errors[] = 'Reponse reCAPTCHA invalide.';
+            } else {
+                $valid = (bool) ($result['success'] ?? false);
+                $riskScore = (float) ($result['score'] ?? 0);
+                $action = (string) ($result['action'] ?? '');
+                $apiErrors = $result['error-codes'] ?? [];
 
-            if ($apiError) {
-                $errors[] = APP_DEBUG
-                    ? "Erreur reCAPTCHA. Détail: " . $apiError
-                    : "Erreur reCAPTCHA. Veuillez réessayer.";
-            }
-
-            if (!$valid || $action !== RECAPTCHA_ACTION_REGISTER) {
-                $errors[] = "Vérification reCAPTCHA invalide.";
-            } elseif ($riskScore < RECAPTCHA_MIN_SCORE) {
-                $errors[] = "Activité suspecte détectée. Veuillez réessayer.";
+                if (!$valid) {
+                    $details = is_array($apiErrors) ? implode(', ', $apiErrors) : '';
+                    $errors[] = (APP_DEBUG && $details !== '')
+                        ? 'Erreur reCAPTCHA. Detail: ' . $details
+                        : 'Verification reCAPTCHA invalide.';
+                } elseif ($action !== RECAPTCHA_ACTION_REGISTER) {
+                    $errors[] = 'Verification reCAPTCHA invalide.';
+                } elseif ($riskScore < RECAPTCHA_MIN_SCORE) {
+                    $errors[] = 'Activite suspecte detectee. Veuillez reessayer.';
+                }
             }
         }
     }
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
         $stmt->execute(['email' => $email]);
         if ($stmt->fetch()) {
-            $errors[] = "Un compte existe déjà avec cet email.";
+            $errors[] = 'Un compte existe deja avec cet email.';
         } else {
-            $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, full_name, phone) VALUES (:email, :password_hash, :full_name, :phone)");
+            $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, full_name, phone) VALUES (:email, :password_hash, :full_name, :phone)');
             $stmt->execute([
                 'email' => $email,
                 'password_hash' => password_hash($password, PASSWORD_DEFAULT),
@@ -128,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="form-card">
         <div class="section-title">
             <span>Inscription</span>
-            <h2>Créer un compte organisateur</h2>
+            <h2>Creer un compte organisateur</h2>
         </div>
         <?php if (!empty($errors)): ?>
             <div class="card" style="margin-bottom: 18px;">
@@ -137,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
         <?php if ($success): ?>
             <div class="card" style="margin-bottom: 18px;">
-                <p style="color: #a7f3d0;">Demande reçue. Votre compte est en attente de validation admin.</p>
+                <p style="color: #a7f3d0;">Demande recue. Votre compte est en attente de validation admin.</p>
             </div>
         <?php endif; ?>
         <form method="post">
@@ -151,13 +152,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input id="email" name="email" type="email" placeholder="contact@email.com" required>
             </div>
             <div class="form-group">
-                <label for="phone">Téléphone</label>
+                <label for="phone">Telephone</label>
                 <input id="phone" name="phone" type="tel" placeholder="+242 06 000 0000" required>
             </div>
             <div class="form-group">
-                <label for="event_type">Type d'événement</label>
+                <label for="event_type">Type d'evenement</label>
                 <select id="event_type" name="event_type" required>
-                    <option value="">Sélectionner</option>
+                    <option value="">Selectionner</option>
                     <option value="wedding">Mariage</option>
                     <option value="birthday">Anniversaire</option>
                     <option value="corporate">Corporate</option>
@@ -165,32 +166,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </select>
             </div>
             <div class="form-group" id="activity_group" style="display: none;">
-                <label for="activity">Votre activité</label>
-                <input id="activity" name="activity" type="text" placeholder="Ex : Organisation de soirées, coaching, etc.">
+                <label for="activity">Votre activite</label>
+                <input id="activity" name="activity" type="text" placeholder="Ex : Organisation de soirees, coaching, etc.">
             </div>
             <div class="form-group">
-                <label for="event_date">Date événement</label>
+                <label for="event_date">Date evenement</label>
                 <input id="event_date" name="event_date" type="date" required>
             </div>
             <div class="form-group">
                 <label for="password">Mot de passe</label>
-                <input id="password" name="password" type="password" minlength="8" placeholder="Min. 8 caractères" required>
+                <input id="password" name="password" type="password" minlength="8" placeholder="Min. 8 caracteres" required>
             </div>
-                        <input type="hidden" name="recaptcha_token" id="recaptcha_token">
+            <input type="hidden" name="recaptcha_token" id="recaptcha_token">
             <button class="button primary" type="submit">Soumettre ma demande</button>
             <p style="margin-top: 14px; color: var(--muted);">Statut attendu : pending (validation admin).</p>
         </form>
     </div>
 </section>
-<script src="https://www.google.com/recaptcha/enterprise.js?render=<?= RECAPTCHA_SITE_KEY; ?>"></script>
+<script src="https://www.google.com/recaptcha/api.js?render=<?= RECAPTCHA_SITE_KEY; ?>"></script>
 <script>
     const form = document.querySelector('form');
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const tokenField = document.getElementById('recaptcha_token');
-        const token = await grecaptcha.enterprise.execute('<?= RECAPTCHA_SITE_KEY; ?>', {action: '<?= RECAPTCHA_ACTION_REGISTER; ?>'});
-        tokenField.value = token;
-        form.submit();
-    });
+
+    if (form) {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const tokenField = document.getElementById('recaptcha_token');
+            if (!tokenField || typeof grecaptcha === 'undefined') {
+                form.submit();
+                return;
+            }
+
+            try {
+                const token = await new Promise((resolve, reject) => {
+                    grecaptcha.ready(async () => {
+                        try {
+                            const value = await grecaptcha.execute('<?= RECAPTCHA_SITE_KEY; ?>', {
+                                action: '<?= RECAPTCHA_ACTION_REGISTER; ?>'
+                            });
+                            resolve(value);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    });
+                });
+
+                tokenField.value = token;
+                form.submit();
+            } catch (error) {
+                form.submit();
+            }
+        });
+    }
 </script>
 <?php include __DIR__ . '/includes/footer.php'; ?>
