@@ -105,8 +105,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (is_array($apiErrors) && in_array('invalid-input-response', $apiErrors, true)) {
                         $errors[] = 'Token reCAPTCHA invalide ou expire. Rechargez la page puis reessayez.';
                     } elseif (is_array($apiErrors) && in_array('invalid-keys', $apiErrors, true)) {
+                        $secretSource = defined('RECAPTCHA_SECRET_KEY_SOURCE')
+                            ? (string) RECAPTCHA_SECRET_KEY_SOURCE
+                            : 'unknown';
                         $errors[] = APP_DEBUG
-                            ? 'Erreur reCAPTCHA. Detail: invalid-keys. Verifiez que RECAPTCHA_SITE_KEY et RECAPTCHA_SECRET_KEY sont de la meme paire (source active: ' . RECAPTCHA_SECRET_KEY_SOURCE . ').'
+                            ? 'Erreur reCAPTCHA. Detail: invalid-keys. Verifiez que RECAPTCHA_SITE_KEY et RECAPTCHA_SECRET_KEY sont de la meme paire (source active: ' . $secretSource . ').'
                             : 'Configuration reCAPTCHA invalide.';
                     } else {
                         $errors[] = (APP_DEBUG && $details !== '')
@@ -123,19 +126,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
-        $stmt->execute(['email' => $email]);
-        if ($stmt->fetch()) {
-            $errors[] = 'Un compte existe deja avec cet email.';
-        } else {
-            $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, full_name, phone) VALUES (:email, :password_hash, :full_name, :phone)');
-            $stmt->execute([
-                'email' => $email,
-                'password_hash' => password_hash($password, PASSWORD_DEFAULT),
-                'full_name' => $fullName,
-                'phone' => $phone,
-            ]);
-            $success = true;
+        try {
+            $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
+            $stmt->execute(['email' => $email]);
+            if ($stmt->fetch()) {
+                $errors[] = 'Un compte existe deja avec cet email.';
+            } else {
+                $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, full_name, phone) VALUES (:email, :password_hash, :full_name, :phone)');
+                $stmt->execute([
+                    'email' => $email,
+                    'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                    'full_name' => $fullName,
+                    'phone' => $phone,
+                ]);
+                $success = true;
+            }
+        } catch (PDOException $e) {
+            $errors[] = APP_DEBUG
+                ? 'Erreur serveur. Detail DB: ' . $e->getMessage()
+                : 'Erreur serveur lors de la creation du compte.';
         }
     }
 }
