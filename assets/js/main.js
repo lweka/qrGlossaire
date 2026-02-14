@@ -47,6 +47,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (textTarget && phrases.length > 1) {
       let phraseIndex = 0;
+      const transitionDuration = 320;
+      const intervalDuration = 3200;
 
       const switchPhrase = () => {
         textTarget.classList.add("is-hiding");
@@ -55,10 +57,11 @@ document.addEventListener("DOMContentLoaded", () => {
           phraseIndex = (phraseIndex + 1) % phrases.length;
           textTarget.textContent = phrases[phraseIndex];
           textTarget.classList.remove("is-hiding");
-        }, 320);
+        }, transitionDuration);
       };
 
-      window.setInterval(switchPhrase, 3600);
+      window.setTimeout(switchPhrase, 1200);
+      window.setInterval(switchPhrase, intervalDuration);
     }
   }
 
