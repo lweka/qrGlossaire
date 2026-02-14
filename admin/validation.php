@@ -31,6 +31,9 @@ $pendingUsers = $pdo->query("SELECT id, full_name, email FROM users WHERE status
         <span>Admin</span>
         <h2>Validation des organisateurs</h2>
     </div>
+    <div style="margin: 0 0 18px;">
+        <a class="button ghost" href="<?= $baseUrl; ?>/admin/dashboard">Retour au dashboard</a>
+    </div>
     <?php if ($message): ?>
         <div class="card" style="margin-bottom: 18px;">
             <p style="color: #a7f3d0;"><?= $message; ?></p>

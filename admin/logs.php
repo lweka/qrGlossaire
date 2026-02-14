@@ -8,6 +8,9 @@ requireRole('admin');
         <span>Admin</span>
         <h2>Logs système</h2>
     </div>
+    <div style="margin: 0 0 18px;">
+        <a class="button ghost" href="<?= $baseUrl; ?>/admin/dashboard">Retour au dashboard</a>
+    </div>
     <table class="table">
         <thead>
             <tr>

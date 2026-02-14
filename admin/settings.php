@@ -8,6 +8,9 @@ requireRole('admin');
         <span>Admin</span>
         <h2>Configuration système</h2>
     </div>
+    <div style="margin: 0 0 18px;">
+        <a class="button ghost" href="<?= $baseUrl; ?>/admin/dashboard">Retour au dashboard</a>
+    </div>
     <div class="card">
         <div class="form-group">
             <label for="smtp">SMTP</label>
