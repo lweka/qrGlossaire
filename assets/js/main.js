@@ -36,11 +36,48 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleActivity();
   }
 
+  const textSlider = document.querySelector("[data-text-slider]");
+  if (textSlider) {
+    const textTarget = textSlider.querySelector("[data-text-current]");
+    const rawPhrases = textSlider.dataset.textPhrases || "";
+    const phrases = rawPhrases
+      .split("||")
+      .map((phrase) => phrase.trim())
+      .filter(Boolean);
+
+    if (textTarget && phrases.length > 1) {
+      let phraseIndex = 0;
+
+      const switchPhrase = () => {
+        textTarget.classList.add("is-hiding");
+
+        window.setTimeout(() => {
+          phraseIndex = (phraseIndex + 1) % phrases.length;
+          textTarget.textContent = phrases[phraseIndex];
+          textTarget.classList.remove("is-hiding");
+        }, 320);
+      };
+
+      window.setInterval(switchPhrase, 3600);
+    }
+  }
+
   const slider = document.querySelector("[data-slider]");
   if (slider) {
     const slides = Array.from(slider.querySelectorAll(".slide"));
     const dotsContainer = slider.querySelector("[data-dots]");
     let currentIndex = 0;
+
+    if (slides.length === 0) {
+      if (dotsContainer) {
+        dotsContainer.innerHTML = "";
+      }
+      return;
+    }
+
+    slides.forEach((slide, index) => {
+      slide.classList.toggle("active", index === 0);
+    });
 
     const goToSlide = (index) => {
       slides[currentIndex].classList.remove("active");
@@ -56,17 +93,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (dotsContainer) {
       dotsContainer.innerHTML = "";
-      slides.forEach((_, index) => {
-        const dot = document.createElement("button");
-        if (index === 0) dot.classList.add("active");
-        dot.addEventListener("click", () => goToSlide(index));
-        dotsContainer.appendChild(dot);
-      });
+      if (slides.length > 1) {
+        slides.forEach((_, index) => {
+          const dot = document.createElement("button");
+          if (index === 0) dot.classList.add("active");
+          dot.addEventListener("click", () => goToSlide(index));
+          dotsContainer.appendChild(dot);
+        });
+      }
     }
 
-    setInterval(() => {
-      const nextIndex = (currentIndex + 1) % slides.length;
-      goToSlide(nextIndex);
-    }, 4500);
+    if (slides.length > 1) {
+      setInterval(() => {
+        const nextIndex = (currentIndex + 1) % slides.length;
+        goToSlide(nextIndex);
+      }, 4500);
+    }
   }
 });

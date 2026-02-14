@@ -1,4 +1,40 @@
 <?php include __DIR__ . '/includes/header.php'; ?>
+<?php
+$sliderDirectory = __DIR__ . '/assets/images/slider';
+$sliderWebPath = 'assets/images/slider';
+$allowedImageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+$sliderImages = [];
+
+if (is_dir($sliderDirectory)) {
+    $entries = scandir($sliderDirectory);
+    if ($entries !== false) {
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $fileNameWithoutExtension = strtolower((string) pathinfo($entry, PATHINFO_FILENAME));
+            if ($fileNameWithoutExtension === 'logo12' || strpos($fileNameWithoutExtension, 'logo') === 0) {
+                continue;
+            }
+
+            $fullPath = $sliderDirectory . DIRECTORY_SEPARATOR . $entry;
+            if (!is_file($fullPath)) {
+                continue;
+            }
+
+            $extension = strtolower((string) pathinfo($entry, PATHINFO_EXTENSION));
+            if (!in_array($extension, $allowedImageExtensions, true)) {
+                continue;
+            }
+
+            $sliderImages[] = $entry;
+        }
+    }
+}
+
+sort($sliderImages, SORT_NATURAL | SORT_FLAG_CASE);
+?>
 <section class="container">
     <nav class="navbar">
         <a class="brand" href="<?= $baseUrl; ?>/">
@@ -22,7 +58,13 @@
     <div class="container hero-grid">
         <div>
             <div class="badge">Plateforme professionnelle</div>
-            <h1 class="fade-up">Des invitations numériques élégantes avec validation QR Code</h1>
+            <h1
+                class="fade-up hero-text-slider"
+                data-text-slider
+                data-text-phrases="Des invitations numeriques elegantes avec validation QR Code||Un QR Code unique pour securiser chaque acces invite||Seulement 0.3$ par invitation QR, simple et rentable||Des confirmations instantanees pour mieux organiser votre evenement||Un accueil rapide a l'entree sans file d'attente||Un suivi en temps reel pour piloter vos decisions"
+            >
+                <span class="hero-text-dynamic is-visible" data-text-current aria-live="polite">Des invitations numeriques elegantes avec validation QR Code</span>
+            </h1>
             <p class="fade-up delay-1">Créez des expériences mémorables pour vos cérémonies. Personnalisez vos invitations, automatisez les confirmations et scannez les QR codes à l'entrée en quelques secondes.</p>
             <div class="fade-up delay-2">
                 <a class="button primary" href="<?= $baseUrl; ?>/register.php">Démarrer maintenant</a>
@@ -45,24 +87,20 @@
         </div>
         <div class="hero-card fade-up delay-2">
             <div class="hero-slider" data-slider>
+                <?php if (empty($sliderImages)): ?>
                 <div class="slide active">
-                    <img src="https://images.unsplash.com/photo-1529634806980-85c3dd6d34ac?auto=format&fit=crop&w=1200&q=80" alt="Invitation mariage">
+                    <div class="slide-placeholder">Ajoutez des images dans le dossier assets/images/slider</div>
                 </div>
-                <div class="slide">
-                    <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80" alt="Anniversaire">
+                <?php else: ?>
+                    <?php foreach ($sliderImages as $index => $imageName): ?>
+                        <?php
+                        $altText = ucwords(str_replace(['-','_'], ' ', (string) pathinfo($imageName, PATHINFO_FILENAME)));
+                        ?>
+                <div class="slide<?= $index === 0 ? ' active' : ''; ?>">
+                    <img src="<?= $baseUrl; ?>/<?= $sliderWebPath; ?>/<?= rawurlencode($imageName); ?>" alt="<?= htmlspecialchars($altText, ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
-                <div class="slide">
-                    <img src="https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=1200&q=80" alt="Cérémonie élégante">
-                </div>
-                <div class="slide">
-                    <img src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80" alt="Événement corporate">
-                </div>
-                <div class="slide">
-                    <img src="https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?auto=format&fit=crop&w=1200&q=80" alt="Soirée VIP">
-                </div>
-                <div class="slide">
-                    <img src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80" alt="Célébration premium">
-                </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
                 <div class="hero-slider-dots" data-dots></div>
             </div>
         </div>
