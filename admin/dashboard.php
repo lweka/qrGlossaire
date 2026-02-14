@@ -13,6 +13,15 @@ $totalRevenue = (int) $pdo->query("SELECT SUM(IF(payment_confirmed = 1, 1, 0)) F
         <span>Admin</span>
         <h2>Tableau de bord administrateur</h2>
     </div>
+    <div class="card" style="margin-bottom: 20px;">
+        <h3 style="margin-bottom: 12px;">Acces rapide supervision</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            <a class="button ghost" href="<?= $baseUrl; ?>/admin/validation">Valider comptes</a>
+            <a class="button ghost" href="<?= $baseUrl; ?>/admin/users">Utilisateurs</a>
+            <a class="button ghost" href="<?= $baseUrl; ?>/admin/logs">Logs</a>
+            <a class="button ghost" href="<?= $baseUrl; ?>/admin/settings">Parametres</a>
+        </div>
+    </div>
     <div class="card-grid">
         <div class="card">
             <h3>Utilisateurs</h3>

@@ -26,6 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
             $errors[] = "Identifiants incorrects.";
+        } elseif (($user['user_type'] ?? '') === 'admin') {
+            $errors[] = "Compte administrateur detecte. Utilisez l'espace admin : " . $baseUrl . "/admin/login";
         } elseif ($user['status'] !== 'active') {
             $errors[] = "Votre compte est actuellement : " . $user['status'] . ".";
         } else {
