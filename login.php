@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = "Votre compte est actuellement : " . $user['status'] . ".";
         } else {
             ensureSession();
+            unset($_SESSION['admin_id'], $_SESSION['admin_email'], $_SESSION['admin_name']);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_type'] = $user['user_type'];
             $_SESSION['full_name'] = $user['full_name'];

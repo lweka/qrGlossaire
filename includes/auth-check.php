@@ -19,13 +19,33 @@ function roleHomePath(string $role): string
     return '/dashboard';
 }
 
+function hasOrganizerSession(): bool
+{
+    ensureSession();
+    return !empty($_SESSION['user_id']) && (string) ($_SESSION['user_type'] ?? '') === 'organizer';
+}
+
+function hasAdminSession(): bool
+{
+    ensureSession();
+    return !empty($_SESSION['admin_id']);
+}
+
 function requireLogin(?string $expectedRole = null): void
 {
     $expectedRole = $expectedRole ?? 'organizer';
     $baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
-    ensureSession();
-    if (empty($_SESSION['user_id'])) {
-        header('Location: ' . $baseUrl . roleLoginPath($expectedRole));
+
+    if ($expectedRole === 'admin') {
+        if (!hasAdminSession()) {
+            header('Location: ' . $baseUrl . roleLoginPath('admin'));
+            exit;
+        }
+        return;
+    }
+
+    if (!hasOrganizerSession()) {
+        header('Location: ' . $baseUrl . roleLoginPath('organizer'));
         exit;
     }
 }
@@ -33,16 +53,34 @@ function requireLogin(?string $expectedRole = null): void
 function requireRole(string $role): void
 {
     $baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
-    requireLogin($role);
 
-    $currentRole = (string) ($_SESSION['user_type'] ?? '');
-    if ($currentRole !== $role) {
-        if ($currentRole === 'admin' || $currentRole === 'organizer') {
-            header('Location: ' . $baseUrl . roleHomePath($currentRole));
+    if ($role === 'admin') {
+        if (hasAdminSession()) {
+            return;
+        }
+
+        if (hasOrganizerSession()) {
+            header('Location: ' . $baseUrl . roleHomePath('organizer'));
             exit;
         }
 
-        header('Location: ' . $baseUrl . roleLoginPath($role));
+        header('Location: ' . $baseUrl . roleLoginPath('admin'));
         exit;
     }
+
+    if ($role === 'organizer') {
+        if (hasOrganizerSession()) {
+            return;
+        }
+
+        if (hasAdminSession()) {
+            header('Location: ' . $baseUrl . roleHomePath('admin'));
+            exit;
+        }
+
+        header('Location: ' . $baseUrl . roleLoginPath('organizer'));
+        exit;
+    }
+
+    requireLogin($role);
 }
