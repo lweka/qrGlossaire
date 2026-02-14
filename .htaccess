@@ -1,0 +1,15 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Canonical URL: redirect direct .php requests to extensionless paths.
+    RewriteCond %{REQUEST_URI} ^(.+)\.php$ [NC]
+    RewriteCond %{THE_REQUEST} \s/+.+\.php(?:[?\s]|$) [NC]
+    RewriteRule ^ %1 [R=301,L,NE]
+
+    # Internally map extensionless paths to existing .php files.
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}.php -f
+    RewriteRule ^(.+?)/?$ $1.php [L,QSA]
+</IfModule>
+
+Options -Indexes

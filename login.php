@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/app/config/database.php';
 require_once __DIR__ . '/app/helpers/security.php';
+require_once __DIR__ . '/app/config/constants.php';
+
+$baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
 
 $errors = [];
 
@@ -30,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_type'] = $user['user_type'];
             $_SESSION['full_name'] = $user['full_name'];
-            header('Location: /dashboard.php');
+            header('Location: ' . $baseUrl . '/dashboard');
             exit;
         }
     }
@@ -59,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input id="password" name="password" type="password" required>
             </div>
             <button class="button primary" type="submit">Se connecter</button>
-            <p style="margin-top: 14px; color: var(--muted);">Besoin d'un compte ? <a href="<?= $baseUrl; ?>/register.php">Créer un compte</a></p>
+            <p style="margin-top: 14px; color: var(--muted);">Besoin d'un compte ? <a href="<?= $baseUrl; ?>/register">Créer un compte</a></p>
         </form>
     </div>
 </section>

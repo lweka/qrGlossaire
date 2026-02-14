@@ -19,7 +19,7 @@ if (!empty($_GET['action']) && $_GET['action'] === 'generate-link' && !empty($_G
         'expiry' => $expiry,
         'id' => $id,
     ]);
-    $generatedLink = $baseUrl . '/activate.php?token=' . $token;
+    $generatedLink = $baseUrl . '/activate?token=' . $token;
     $message = "Lien généré (valide " . TOKEN_EXPIRY_DAYS . " jours).";
 }
 
@@ -58,7 +58,7 @@ $pendingUsers = $pdo->query("SELECT id, full_name, email FROM users WHERE status
                             <td><?= htmlspecialchars($user['full_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?= htmlspecialchars($user['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td>
-                                <a class="button primary" href="<?= $baseUrl; ?>/admin/validation.php?action=generate-link&id=<?= $user['id']; ?>">Générer lien</a>
+                                <a class="button primary" href="<?= $baseUrl; ?>/admin/validation?action=generate-link&id=<?= $user['id']; ?>">Générer lien</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

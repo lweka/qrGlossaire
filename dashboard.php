@@ -24,8 +24,8 @@ $recentGuests = $recentStmt->fetchAll();
 <div class="dashboard">
     <aside class="sidebar">
         <h3>Tableau de bord</h3>
-        <a class="active" href="<?= $baseUrl; ?>/dashboard.php">Vue générale</a>
-        <a href="<?= $baseUrl; ?>/create-event.php">Créer un événement</a>
+        <a class="active" href="<?= $baseUrl; ?>/dashboard">Vue générale</a>
+        <a href="<?= $baseUrl; ?>/create-event">Créer un événement</a>
         <a href="#">Invités</a>
         <a href="#">Communication</a>
         <a href="#">Rapports</a>

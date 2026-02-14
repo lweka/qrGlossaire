@@ -63,9 +63,9 @@ $users = $pdo->query("SELECT id, full_name, email, status, payment_confirmed FRO
                         <td><?= htmlspecialchars($user['status'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
                         <td><?= $user['payment_confirmed'] ? 'Oui' : 'Non'; ?></td>
                         <td>
-                            <a class="button ghost" href="<?= $baseUrl; ?>/admin/users.php?action=confirm-payment&id=<?= $user['id']; ?>">Paiement</a>
-                            <a class="button ghost" href="<?= $baseUrl; ?>/admin/users.php?action=activate&id=<?= $user['id']; ?>">Activer</a>
-                            <a class="button ghost" href="<?= $baseUrl; ?>/admin/users.php?action=suspend&id=<?= $user['id']; ?>">Suspendre</a>
+                            <a class="button ghost" href="<?= $baseUrl; ?>/admin/users?action=confirm-payment&id=<?= $user['id']; ?>">Paiement</a>
+                            <a class="button ghost" href="<?= $baseUrl; ?>/admin/users?action=activate&id=<?= $user['id']; ?>">Activer</a>
+                            <a class="button ghost" href="<?= $baseUrl; ?>/admin/users?action=suspend&id=<?= $user['id']; ?>">Suspendre</a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

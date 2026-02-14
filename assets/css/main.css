@@ -538,12 +538,119 @@ textarea::placeholder {
   margin-bottom: 12px;
 }
 
+.invitation-showcase {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr);
+  gap: 24px;
+  align-items: start;
+  padding-bottom: 40px;
+}
+
+.invitation-slider-wrap {
+  min-height: 420px;
+}
+
+.invitation-model-slider {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: #ffffff;
+  min-height: 420px;
+}
+
+.invitation-model-slider .slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.015);
+  transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+}
+
+.invitation-model-slider .slide.active {
+  opacity: 1;
+  transform: scale(1);
+  position: relative;
+}
+
+.invitation-model-slider .slide img {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+  display: block;
+}
+
+.invitation-slide-overlay {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  padding: 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.2) 0%, rgba(15, 23, 42, 0.82) 100%);
+  color: #ffffff;
+}
+
+.invitation-slide-overlay h3 {
+  margin-bottom: 6px;
+  color: #ffffff;
+}
+
+.invitation-slide-overlay p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.invitation-slide-chip {
+  display: inline-flex;
+  margin-bottom: 10px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.invitation-empty-state {
+  height: 420px;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--text-mid);
+  border: 1px dashed rgba(148, 163, 184, 0.6);
+  background: linear-gradient(140deg, rgba(248, 250, 252, 1) 0%, rgba(226, 232, 240, 0.95) 100%);
+}
+
 .invitation-section {
   background: #ffffff;
   border-radius: var(--radius);
   padding: 32px;
   border: 1px solid rgba(148, 163, 184, 0.35);
   margin-bottom: 24px;
+}
+
+.invitation-dynamic-details .invitation-meta-line {
+  color: var(--text-mid);
+  margin-bottom: 18px;
+}
+
+.invitation-detail-list p {
+  margin: 0 0 10px;
+}
+
+.invitation-rsvp-status {
+  margin-top: 12px;
+  color: var(--text-mid);
+}
+
+.invitation-rsvp-status.is-success {
+  color: #166534;
+  font-weight: 600;
 }
 
 .qr-box {
@@ -559,6 +666,10 @@ textarea::placeholder {
 
 @media (max-width: 1024px) {
   .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .invitation-showcase {
     grid-template-columns: 1fr;
   }
 
@@ -582,6 +693,11 @@ textarea::placeholder {
 
   .hero-slider .slide img {
     height: 280px;
+  }
+
+  .invitation-model-slider .slide img,
+  .invitation-empty-state {
+    height: 300px;
   }
 
   .brand strong span {

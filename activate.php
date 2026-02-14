@@ -38,7 +38,7 @@ if ($token !== '') {
         </div>
         <p style="color: <?= $success ? '#a7f3d0' : '#fca5a5'; ?>;"><?= $message; ?></p>
         <div style="margin-top: 18px;">
-            <a class="button primary" href="<?= $baseUrl; ?>/login.php">Se connecter</a>
+            <a class="button primary" href="<?= $baseUrl; ?>/login">Se connecter</a>
         </div>
     </div>
 </section>

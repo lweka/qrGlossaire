@@ -65,40 +65,141 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  const slider = document.querySelector("[data-slider]");
-  if (slider) {
+  const invitationShowcases = Array.from(
+    document.querySelectorAll("[data-invitation-showcase]")
+  );
+
+  const syncInvitationShowcase = (showcase, slide) => {
+    const headline = showcase.querySelector("[data-invitation-current-headline]");
+    const meta = showcase.querySelector("[data-invitation-current-meta]");
+    const date = showcase.querySelector("[data-invitation-current-date]");
+    const location = showcase.querySelector("[data-invitation-current-location]");
+    const dressCode = showcase.querySelector(
+      "[data-invitation-current-dress-code]"
+    );
+    const rsvpDeadline = showcase.querySelector(
+      "[data-invitation-current-rsvp-deadline]"
+    );
+
+    const dataset = slide?.dataset || {};
+    const safeValue = (value, fallback) =>
+      value && String(value).trim() !== "" ? value : fallback;
+
+    if (headline) {
+      headline.textContent = safeValue(
+        dataset.invitationHeadline,
+        "Invitation Personnalisee"
+      );
+    }
+    if (meta) {
+      meta.textContent = safeValue(
+        dataset.invitationMeta,
+        "Configurez votre modele et partagez-le en QR Code."
+      );
+    }
+    if (date) {
+      date.textContent = safeValue(dataset.invitationDate, "A definir");
+    }
+    if (location) {
+      location.textContent = safeValue(dataset.invitationLocation, "A definir");
+    }
+    if (dressCode) {
+      dressCode.textContent = safeValue(
+        dataset.invitationDressCode,
+        "A definir"
+      );
+    }
+    if (rsvpDeadline) {
+      rsvpDeadline.textContent = safeValue(
+        dataset.invitationRsvpDeadline,
+        "A definir"
+      );
+    }
+  };
+
+  invitationShowcases.forEach((showcase) => {
+    const slider = showcase.querySelector("[data-slider]");
+    if (!slider) {
+      return;
+    }
+
+    slider.addEventListener("slider:change", (event) => {
+      syncInvitationShowcase(showcase, event.detail?.slide || null);
+    });
+
+    const initialSlide =
+      slider.querySelector(".slide.active") || slider.querySelector(".slide");
+    syncInvitationShowcase(showcase, initialSlide);
+
+    const rsvpButton = showcase.querySelector("[data-rsvp-button]");
+    const rsvpStatus = showcase.querySelector("[data-rsvp-status]");
+    if (rsvpButton && rsvpStatus) {
+      rsvpButton.addEventListener("click", () => {
+        const activeSlide =
+          slider.querySelector(".slide.active") || slider.querySelector(".slide");
+        const invitationName =
+          activeSlide?.dataset?.invitationHeadline || "cette invitation";
+        const deadline =
+          activeSlide?.dataset?.invitationRsvpDeadline || "la date prevue";
+        rsvpStatus.textContent = `Presence confirmee pour ${invitationName}. Reponse enregistree avant ${deadline}.`;
+        rsvpStatus.classList.add("is-success");
+      });
+    }
+  });
+
+  const initializeSlider = (slider) => {
     const slides = Array.from(slider.querySelectorAll(".slide"));
     const dotsContainer = slider.querySelector("[data-dots]");
     let currentIndex = 0;
+
+    const emitSlideChange = () => {
+      slider.dispatchEvent(
+        new CustomEvent("slider:change", {
+          detail: {
+            index: currentIndex,
+            slide: slides[currentIndex] || null,
+          },
+        })
+      );
+    };
 
     if (slides.length === 0) {
       if (dotsContainer) {
         dotsContainer.innerHTML = "";
       }
+      emitSlideChange();
       return;
     }
 
-    slides.forEach((slide, index) => {
-      slide.classList.toggle("active", index === 0);
-    });
-
     const goToSlide = (index) => {
+      if (!slides[index] || index === currentIndex) {
+        return;
+      }
+
       slides[currentIndex].classList.remove("active");
       if (dotsContainer) {
         dotsContainer.children[currentIndex]?.classList.remove("active");
       }
+
       currentIndex = index;
       slides[currentIndex].classList.add("active");
       if (dotsContainer) {
         dotsContainer.children[currentIndex]?.classList.add("active");
       }
+
+      emitSlideChange();
     };
+
+    slides.forEach((slide, index) => {
+      slide.classList.toggle("active", index === 0);
+    });
 
     if (dotsContainer) {
       dotsContainer.innerHTML = "";
       if (slides.length > 1) {
         slides.forEach((_, index) => {
           const dot = document.createElement("button");
+          dot.type = "button";
           if (index === 0) dot.classList.add("active");
           dot.addEventListener("click", () => goToSlide(index));
           dotsContainer.appendChild(dot);
@@ -106,11 +207,17 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    emitSlideChange();
+
     if (slides.length > 1) {
-      setInterval(() => {
+      window.setInterval(() => {
         const nextIndex = (currentIndex + 1) % slides.length;
         goToSlide(nextIndex);
       }, 4500);
     }
-  }
+  };
+
+  document.querySelectorAll("[data-slider]").forEach((slider) => {
+    initializeSlider(slider);
+  });
 });

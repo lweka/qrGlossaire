@@ -48,8 +48,8 @@ sort($sliderImages, SORT_NATURAL | SORT_FLAG_CASE);
             <a href="#faq">FAQ</a>
         </div>
         <div>
-            <a class="button ghost" href="<?= $baseUrl; ?>/login.php">Se connecter</a>
-            <a class="button primary" href="<?= $baseUrl; ?>/register.php">Créer mon invitation</a>
+            <a class="button ghost" href="<?= $baseUrl; ?>/login">Se connecter</a>
+            <a class="button primary" href="<?= $baseUrl; ?>/register">Créer mon invitation</a>
         </div>
     </nav>
 </section>
@@ -67,8 +67,8 @@ sort($sliderImages, SORT_NATURAL | SORT_FLAG_CASE);
             </h1>
             <p class="fade-up delay-1">Créez des expériences mémorables pour vos cérémonies. Personnalisez vos invitations, automatisez les confirmations et scannez les QR codes à l'entrée en quelques secondes.</p>
             <div class="fade-up delay-2">
-                <a class="button primary" href="<?= $baseUrl; ?>/register.php">Démarrer maintenant</a>
-                <a class="button ghost" href="<?= $baseUrl; ?>/invitation.php">Voir une invitation</a>
+                <a class="button primary" href="<?= $baseUrl; ?>/register">Démarrer maintenant</a>
+                <a class="button ghost" href="<?= $baseUrl; ?>/invitation">Voir une invitation</a>
             </div>
             <div class="stats fade-up delay-3">
                 <div class="stat">
