@@ -15,9 +15,9 @@ if (!empty($_GET['action']) && !empty($_GET['id'])) {
     }
 
     if ($action === 'activate') {
-        $stmt = $pdo->prepare("UPDATE users SET status = 'active' WHERE id = :id AND payment_confirmed = 1");
+        $stmt = $pdo->prepare("UPDATE users SET status = 'active', unique_link_token = NULL, token_expiry = NULL WHERE id = :id AND payment_confirmed = 1");
         $stmt->execute(['id' => $id]);
-        $message = "Compte activé si paiement confirmé.";
+        $message = "Compte active manuellement si paiement confirme.";
     }
 
     if ($action === 'confirm-payment') {
