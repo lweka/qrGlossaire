@@ -191,7 +191,7 @@ $activeModel = $invitationModels[0] ?? $modelProfiles['default'];
 
     <div class="invitation-section">
         <h3>Carte interactive</h3>
-        <iframe title="Carte" width="100%" height="260" style="border:0;border-radius:16px;" loading="lazy" allowfullscreen src="https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=Pointe-Noire"></iframe>
+        <iframe title="Carte" width="100%" height="260" style="border:0;border-radius:16px;" loading="lazy" allowfullscreen src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d418.1905466862109!2d15.27022589766349!3d-4.312646422274183!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x1a6a33cd8a49cd59%3A0x44c649ce70ff5c4a!2sFleuve%20Congo%20Hotel%20by%20Blazon%20Hotels!5e0!3m2!1sfr!2scd!4v1771195221499!5m2!1sfr!2scd"></iframe>
     </div>
 
     <div class="invitation-section">
