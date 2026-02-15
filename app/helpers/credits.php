@@ -70,6 +70,78 @@ function isCommunicationLogModuleEnabled(PDO $pdo, bool $refresh = false): bool
     return creditTableExists($pdo, 'communication_logs', $refresh);
 }
 
+function creditPreferredEngine(PDO $pdo): string
+{
+    try {
+        $stmt = $pdo->prepare('SHOW TABLE STATUS LIKE :table_name');
+        $stmt->execute(['table_name' => 'users']);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $engine = strtoupper(trim((string) ($row['Engine'] ?? '')));
+        if ($engine !== '' && preg_match('/^[A-Z0-9_]+$/', $engine) === 1) {
+            return $engine;
+        }
+    } catch (Throwable $throwable) {
+    }
+
+    return 'INNODB';
+}
+
+function createCreditRequestsTable(PDO $pdo): bool
+{
+    $engine = creditPreferredEngine($pdo);
+
+    $sql = "CREATE TABLE credit_requests (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                requested_invitation_credits INT NOT NULL DEFAULT 0,
+                requested_event_credits INT NOT NULL DEFAULT 0,
+                unit_price_usd DECIMAL(10,2) NOT NULL DEFAULT 0.30,
+                amount_usd DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+                request_note TEXT NULL,
+                admin_note TEXT NULL,
+                approved_by_admin_id INT NULL,
+                approved_at DATETIME NULL,
+                rejected_at DATETIME NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_credit_requests_user_status (user_id, status),
+                INDEX idx_credit_requests_status (status)
+            ) ENGINE={$engine} DEFAULT CHARSET=utf8mb4";
+
+    try {
+        $pdo->exec($sql);
+        return true;
+    } catch (Throwable $throwable) {
+        return false;
+    }
+}
+
+function createCommunicationLogsTable(PDO $pdo): bool
+{
+    $engine = creditPreferredEngine($pdo);
+
+    $sql = "CREATE TABLE communication_logs (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                event_id INT NULL,
+                channel ENUM('email', 'sms', 'whatsapp', 'manual') NOT NULL DEFAULT 'email',
+                recipient_scope ENUM('all', 'pending', 'confirmed', 'declined') NOT NULL DEFAULT 'all',
+                message_text TEXT NOT NULL,
+                recipient_count INT NOT NULL DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_communication_logs_user_created (user_id, created_at),
+                INDEX idx_communication_logs_event_created (event_id, created_at)
+            ) ENGINE={$engine} DEFAULT CHARSET=utf8mb4";
+
+    try {
+        $pdo->exec($sql);
+        return true;
+    } catch (Throwable $throwable) {
+        return false;
+    }
+}
+
 function ensureCreditSystemSchema(PDO $pdo): bool
 {
     static $attempted = false;
@@ -96,51 +168,11 @@ function ensureCreditSystemSchema(PDO $pdo): bool
         }
 
         if (!creditTableExists($pdo, 'credit_requests')) {
-            try {
-                $pdo->exec(
-                    "CREATE TABLE credit_requests (
-                        id INT PRIMARY KEY AUTO_INCREMENT,
-                        user_id INT NOT NULL,
-                        requested_invitation_credits INT NOT NULL DEFAULT 0,
-                        requested_event_credits INT NOT NULL DEFAULT 0,
-                        unit_price_usd DECIMAL(10,2) NOT NULL DEFAULT 0.30,
-                        amount_usd DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-                        status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
-                        request_note TEXT NULL,
-                        admin_note TEXT NULL,
-                        approved_by_admin_id INT NULL,
-                        approved_at DATETIME NULL,
-                        rejected_at DATETIME NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                        INDEX idx_credit_requests_user_status (user_id, status),
-                        INDEX idx_credit_requests_status (status),
-                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                );
-            } catch (Throwable $throwable) {
-            }
+            createCreditRequestsTable($pdo);
         }
 
         if (!creditTableExists($pdo, 'communication_logs')) {
-            try {
-                $pdo->exec(
-                    "CREATE TABLE communication_logs (
-                        id INT PRIMARY KEY AUTO_INCREMENT,
-                        user_id INT NOT NULL,
-                        event_id INT NULL,
-                        channel ENUM('email', 'sms', 'whatsapp', 'manual') NOT NULL DEFAULT 'email',
-                        recipient_scope ENUM('all', 'pending', 'confirmed', 'declined') NOT NULL DEFAULT 'all',
-                        message_text TEXT NOT NULL,
-                        recipient_count INT NOT NULL DEFAULT 0,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        INDEX idx_communication_logs_user_created (user_id, created_at),
-                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-                        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                );
-            } catch (Throwable $throwable) {
-            }
+            createCommunicationLogsTable($pdo);
         }
     } catch (Throwable $throwable) {
     }
