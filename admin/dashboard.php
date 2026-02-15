@@ -2,13 +2,14 @@
 require_once __DIR__ . '/../includes/auth-check.php';
 require_once __DIR__ . '/../app/helpers/credits.php';
 requireRole('admin');
-ensureCreditSystemSchema($pdo);
+$creditSchemaReady = ensureCreditSystemSchema($pdo);
 
 $totalUsers = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
 $newUsers = (int) $pdo->query('SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')->fetchColumn();
 $totalEvents = (int) $pdo->query('SELECT COUNT(*) FROM events')->fetchColumn();
 $totalPaidUsers = (int) $pdo->query('SELECT SUM(IF(payment_confirmed = 1, 1, 0)) FROM users')->fetchColumn();
-$pendingCreditRequests = (int) $pdo->query("SELECT COUNT(*) FROM credit_requests WHERE status = 'pending'")->fetchColumn();
+$pendingCreditRequests = count(getPendingCreditRequests($pdo));
+$creditRequestModuleEnabled = isCreditRequestModuleEnabled($pdo);
 ?>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <section class="container section">
@@ -25,6 +26,13 @@ $pendingCreditRequests = (int) $pdo->query("SELECT COUNT(*) FROM credit_requests
             <a class="button ghost" href="<?= $baseUrl; ?>/admin/settings">Parametres</a>
         </div>
     </div>
+    <?php if (!$creditSchemaReady || !$creditRequestModuleEnabled): ?>
+        <div class="card" style="margin-bottom: 20px;">
+            <p style="color: #92400e;">
+                Module credits partiellement initialise. Executez <code>php scripts/migrate_credit_system.php</code> sur le serveur si necessaire.
+            </p>
+        </div>
+    <?php endif; ?>
     <div class="card-grid">
         <div class="card">
             <h3>Utilisateurs</h3>

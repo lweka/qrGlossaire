@@ -2,17 +2,23 @@
 require_once __DIR__ . '/includes/auth-check.php';
 require_once __DIR__ . '/app/helpers/credits.php';
 requireRole('organizer');
-ensureCreditSystemSchema($pdo);
+$creditSchemaReady = ensureCreditSystemSchema($pdo);
 
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 $dashboardSection = 'overview';
 $message = null;
 $messageType = 'success';
+$summary = getUserCreditSummary($pdo, $userId);
+$creditControlEnabled = !empty($summary['credit_controls_enabled']);
+$requestModuleEnabled = !empty($summary['request_module_enabled']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'request-credit') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Token de securite invalide.';
         $messageType = 'error';
+    } elseif (!$requestModuleEnabled) {
+        $message = 'Module credits non initialise. Contactez l administration.';
+        $messageType = 'warning';
     } else {
         $requestedInvitationCredits = max(0, (int) ($_POST['requested_invitation_credits'] ?? 0));
         $requestedEventCredits = max(0, (int) ($_POST['requested_event_credits'] ?? 0));
@@ -32,6 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'reque
 }
 
 $summary = getUserCreditSummary($pdo, $userId);
+$creditControlEnabled = !empty($summary['credit_controls_enabled']);
+$requestModuleEnabled = !empty($summary['request_module_enabled']);
 $pendingRequest = getPendingCreditRequestForUser($pdo, $userId);
 $latestProcessedRequest = getLatestProcessedCreditRequestForUser($pdo, $userId);
 
@@ -79,19 +87,42 @@ $recentGuests = $recentStmt->fetchAll();
 
         <?php if ($message): ?>
             <div class="card" style="margin-bottom: 18px;">
-                <?php $messageColor = $messageType === 'error' ? '#dc2626' : '#166534'; ?>
+                <?php
+                $messageColor = '#166534';
+                if ($messageType === 'error') {
+                    $messageColor = '#dc2626';
+                } elseif ($messageType === 'warning') {
+                    $messageColor = '#92400e';
+                }
+                ?>
                 <p style="color: <?= $messageColor; ?>;"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!$creditSchemaReady || !$creditControlEnabled || !$requestModuleEnabled): ?>
+            <div class="card" style="margin-bottom: 18px;">
+                <p style="color: #92400e;">
+                    Le module credits est en cours d initialisation. Certaines limites et demandes peuvent etre indisponibles temporairement.
+                </p>
             </div>
         <?php endif; ?>
 
         <div class="card-grid">
             <div class="card">
                 <h3>Credits invitations</h3>
-                <p><strong><?= $summary['invitation_remaining']; ?></strong> restants / <?= $summary['invitation_total']; ?> achetes</p>
+                <?php if ($creditControlEnabled): ?>
+                    <p><strong><?= $summary['invitation_remaining']; ?></strong> restants / <?= $summary['invitation_total']; ?> achetes</p>
+                <?php else: ?>
+                    <p><strong>N/A</strong> module credits indisponible</p>
+                <?php endif; ?>
             </div>
             <div class="card">
                 <h3>Credits creation evenement</h3>
-                <p><strong><?= $summary['event_remaining']; ?></strong> restants / <?= $summary['event_total']; ?> achetes</p>
+                <?php if ($creditControlEnabled): ?>
+                    <p><strong><?= $summary['event_remaining']; ?></strong> restants / <?= $summary['event_total']; ?> achetes</p>
+                <?php else: ?>
+                    <p><strong>N/A</strong> module credits indisponible</p>
+                <?php endif; ?>
             </div>
             <div class="card">
                 <h3>Taux de confirmation</h3>
@@ -111,7 +142,9 @@ $recentGuests = $recentStmt->fetchAll();
                     Vous pouvez aussi demander des credits de creation d evenement.
                 </p>
 
-                <?php if ($pendingRequest): ?>
+                <?php if (!$requestModuleEnabled): ?>
+                    <p style="color: #92400e;">Demandes d augmentation temporairement indisponibles.</p>
+                <?php elseif ($pendingRequest): ?>
                     <p style="color: #92400e;">
                         Demande en attente: +<?= (int) $pendingRequest['requested_invitation_credits']; ?> invitations,
                         +<?= (int) $pendingRequest['requested_event_credits']; ?> credit(s) evenement,

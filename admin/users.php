@@ -2,7 +2,9 @@
 require_once __DIR__ . '/../includes/auth-check.php';
 require_once __DIR__ . '/../app/helpers/credits.php';
 requireRole('admin');
-ensureCreditSystemSchema($pdo);
+$creditSchemaReady = ensureCreditSystemSchema($pdo);
+$creditQuotaEnabled = isCreditQuotaEnabled($pdo);
+$creditRequestModuleEnabled = isCreditRequestModuleEnabled($pdo);
 
 $message = null;
 $messageType = 'success';
@@ -32,9 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->beginTransaction();
                 $stmt = $pdo->prepare('UPDATE users SET payment_confirmed = 1, payment_date = CURDATE() WHERE id = :id');
                 $stmt->execute(['id' => $userId]);
-                grantCreditsToUser($pdo, $userId, $invitationCredits, $eventCredits);
+                $creditsGranted = grantCreditsToUser($pdo, $userId, $invitationCredits, $eventCredits);
                 $pdo->commit();
-                $message = 'Paiement confirme et credits ajoutes (' . $invitationCredits . ' invitations, ' . $eventCredits . ' evenement(s)).';
+                if ($creditsGranted) {
+                    $message = 'Paiement confirme et credits ajoutes (' . $invitationCredits . ' invitations, ' . $eventCredits . ' evenement(s)).';
+                } else {
+                    $message = 'Paiement confirme. Module credits non initialise: executez php scripts/migrate_credit_system.php.';
+                    $messageType = 'warning';
+                }
             } catch (Throwable $exception) {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
@@ -64,21 +71,16 @@ $users = $pdo->query(
         u.full_name,
         u.email,
         u.status,
-        u.payment_confirmed,
-        u.invitation_credit_total,
-        u.event_credit_total,
-        (SELECT COUNT(*)
-         FROM guests g
-         INNER JOIN events ev ON ev.id = g.event_id
-         WHERE ev.user_id = u.id) AS invitations_used,
-        (SELECT COUNT(*)
-         FROM events ev2
-         WHERE ev2.user_id = u.id) AS events_used
+        u.payment_confirmed
      FROM users u
      ORDER BY u.created_at DESC"
 )->fetchAll();
 
 $pendingCreditRequests = getPendingCreditRequests($pdo);
+$userCreditSummary = [];
+foreach ($users as $user) {
+    $userCreditSummary[(int) $user['id']] = getUserCreditSummary($pdo, (int) $user['id']);
+}
 ?>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <section class="container section">
@@ -92,8 +94,24 @@ $pendingCreditRequests = getPendingCreditRequests($pdo);
 
     <?php if ($message): ?>
         <div class="card" style="margin-bottom: 18px;">
-            <?php $messageColor = $messageType === 'error' ? '#dc2626' : '#166534'; ?>
+            <?php
+            $messageColor = '#166534';
+            if ($messageType === 'error') {
+                $messageColor = '#dc2626';
+            } elseif ($messageType === 'warning') {
+                $messageColor = '#92400e';
+            }
+            ?>
             <p style="color: <?= $messageColor; ?>;"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p>
+        </div>
+    <?php endif; ?>
+
+    <?php if (!$creditSchemaReady || !$creditQuotaEnabled || !$creditRequestModuleEnabled): ?>
+        <div class="card" style="margin-bottom: 18px;">
+            <p style="color: #92400e;">
+                Le module credits n est pas entierement initialise sur ce serveur.
+                Lancez <code>php scripts/migrate_credit_system.php</code> puis actualisez.
+            </p>
         </div>
     <?php endif; ?>
 
@@ -113,7 +131,11 @@ $pendingCreditRequests = getPendingCreditRequests($pdo);
                 </tr>
             </thead>
             <tbody>
-                <?php if (empty($pendingCreditRequests)): ?>
+                <?php if (!$creditRequestModuleEnabled): ?>
+                    <tr>
+                        <td colspan="5">Module de demandes indisponible (migration requise).</td>
+                    </tr>
+                <?php elseif (empty($pendingCreditRequests)): ?>
                     <tr>
                         <td colspan="5">Aucune demande en attente.</td>
                     </tr>
@@ -175,26 +197,43 @@ $pendingCreditRequests = getPendingCreditRequests($pdo);
                 <?php else: ?>
                     <?php foreach ($users as $user): ?>
                         <?php
-                        $invitationTotal = (int) ($user['invitation_credit_total'] ?? 0);
-                        $invitationUsed = (int) ($user['invitations_used'] ?? 0);
-                        $eventTotal = (int) ($user['event_credit_total'] ?? 0);
-                        $eventUsed = (int) ($user['events_used'] ?? 0);
+                        $summary = $userCreditSummary[(int) $user['id']] ?? [
+                            'invitation_total' => 0,
+                            'invitation_used' => 0,
+                            'invitation_remaining' => 0,
+                            'event_total' => 0,
+                            'event_used' => 0,
+                            'event_remaining' => 0,
+                            'credit_controls_enabled' => false,
+                        ];
                         ?>
                         <tr>
                             <td><?= htmlspecialchars((string) ($user['full_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?= htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?= htmlspecialchars((string) ($user['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?= (int) ($user['payment_confirmed'] ?? 0) === 1 ? 'Oui' : 'Non'; ?></td>
-                            <td><?= max(0, $invitationTotal - $invitationUsed); ?> / <?= $invitationTotal; ?></td>
-                            <td><?= max(0, $eventTotal - $eventUsed); ?> / <?= $eventTotal; ?></td>
+                            <td>
+                                <?php if (!empty($summary['credit_controls_enabled'])): ?>
+                                    <?= (int) $summary['invitation_remaining']; ?> / <?= (int) $summary['invitation_total']; ?>
+                                <?php else: ?>
+                                    N/A
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($summary['credit_controls_enabled'])): ?>
+                                    <?= (int) $summary['event_remaining']; ?> / <?= (int) $summary['event_total']; ?>
+                                <?php else: ?>
+                                    N/A
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <form method="post" style="display: inline-block; margin: 0 8px 8px 0;">
                                     <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
                                     <input type="hidden" name="action" value="confirm-payment">
                                     <input type="hidden" name="id" value="<?= (int) $user['id']; ?>">
-                                    <input type="number" name="invitation_credits" min="0" value="<?= DEFAULT_INITIAL_INVITATION_CREDITS; ?>" style="width: 110px;" title="Credits invitations">
-                                    <input type="number" name="event_credits" min="0" value="<?= DEFAULT_INITIAL_EVENT_CREDITS; ?>" style="width: 90px;" title="Credits evenement">
-                                    <button class="button ghost" type="submit">Paiement + credits</button>
+                                    <input type="number" name="invitation_credits" min="0" value="<?= DEFAULT_INITIAL_INVITATION_CREDITS; ?>" style="width: 110px;" title="Credits invitations" <?= $creditQuotaEnabled ? '' : 'disabled'; ?>>
+                                    <input type="number" name="event_credits" min="0" value="<?= DEFAULT_INITIAL_EVENT_CREDITS; ?>" style="width: 90px;" title="Credits evenement" <?= $creditQuotaEnabled ? '' : 'disabled'; ?>>
+                                    <button class="button ghost" type="submit"><?= $creditQuotaEnabled ? 'Paiement + credits' : 'Paiement'; ?></button>
                                 </form>
 
                                 <form method="post" style="display: inline-block; margin-right: 6px;">

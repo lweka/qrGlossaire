@@ -2,7 +2,8 @@
 require_once __DIR__ . '/includes/auth-check.php';
 require_once __DIR__ . '/app/helpers/credits.php';
 requireRole('organizer');
-ensureCreditSystemSchema($pdo);
+$creditSchemaReady = ensureCreditSystemSchema($pdo);
+$communicationLogModuleEnabled = isCommunicationLogModuleEnabled($pdo);
 
 $dashboardSection = 'communications';
 $userId = (int) ($_SESSION['user_id'] ?? 0);
@@ -17,6 +18,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send-
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Token de securite invalide.';
         $messageType = 'error';
+    } elseif (!$communicationLogModuleEnabled) {
+        $message = 'Module de journalisation des communications non initialise. Reessayez apres migration.';
+        $messageType = 'warning';
     } else {
         $eventId = (int) ($_POST['event_id'] ?? 0);
         $channel = sanitizeInput($_POST['channel'] ?? 'email');
@@ -56,37 +60,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'send-
                     $message = 'Aucun destinataire pour ce filtre.';
                     $messageType = 'error';
                 } else {
-                    $insertLogStmt = $pdo->prepare(
-                        'INSERT INTO communication_logs (user_id, event_id, channel, recipient_scope, message_text, recipient_count)
-                         VALUES (:user_id, :event_id, :channel, :recipient_scope, :message_text, :recipient_count)'
-                    );
-                    $insertLogStmt->execute([
-                        'user_id' => $userId,
-                        'event_id' => $eventId,
-                        'channel' => $channel,
-                        'recipient_scope' => $recipientScope,
-                        'message_text' => $messageText,
-                        'recipient_count' => $recipientCount,
-                    ]);
+                    try {
+                        $insertLogStmt = $pdo->prepare(
+                            'INSERT INTO communication_logs (user_id, event_id, channel, recipient_scope, message_text, recipient_count)
+                             VALUES (:user_id, :event_id, :channel, :recipient_scope, :message_text, :recipient_count)'
+                        );
+                        $insertLogStmt->execute([
+                            'user_id' => $userId,
+                            'event_id' => $eventId,
+                            'channel' => $channel,
+                            'recipient_scope' => $recipientScope,
+                            'message_text' => $messageText,
+                            'recipient_count' => $recipientCount,
+                        ]);
 
-                    $message = 'Communication enregistree pour ' . $recipientCount . ' destinataire(s).';
-                    $messageType = 'success';
+                        $message = 'Communication enregistree pour ' . $recipientCount . ' destinataire(s).';
+                        $messageType = 'success';
+                    } catch (Throwable $throwable) {
+                        $message = 'Impossible d enregistrer la communication: ' . $throwable->getMessage();
+                        $messageType = 'error';
+                    }
                 }
             }
         }
     }
 }
 
-$logsStmt = $pdo->prepare(
-    'SELECT cl.*, e.title AS event_title
-     FROM communication_logs cl
-     LEFT JOIN events e ON e.id = cl.event_id
-     WHERE cl.user_id = :user_id
-     ORDER BY cl.id DESC
-     LIMIT 20'
-);
-$logsStmt->execute(['user_id' => $userId]);
-$logs = $logsStmt->fetchAll();
+$logs = [];
+if ($communicationLogModuleEnabled) {
+    try {
+        $logsStmt = $pdo->prepare(
+            'SELECT cl.*, e.title AS event_title
+             FROM communication_logs cl
+             LEFT JOIN events e ON e.id = cl.event_id
+             WHERE cl.user_id = :user_id
+             ORDER BY cl.id DESC
+             LIMIT 20'
+        );
+        $logsStmt->execute(['user_id' => $userId]);
+        $logs = $logsStmt->fetchAll();
+    } catch (Throwable $throwable) {
+        $logs = [];
+    }
+}
 ?>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <div class="dashboard">
@@ -102,14 +118,29 @@ $logs = $logsStmt->fetchAll();
 
         <?php if ($message): ?>
             <div class="card" style="margin-bottom: 18px;">
-                <?php $color = $messageType === 'error' ? '#dc2626' : '#166534'; ?>
+                <?php
+                $color = '#166534';
+                if ($messageType === 'error') {
+                    $color = '#dc2626';
+                } elseif ($messageType === 'warning') {
+                    $color = '#92400e';
+                }
+                ?>
                 <p style="color: <?= $color; ?>;"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!$creditSchemaReady || !$communicationLogModuleEnabled): ?>
+            <div class="card" style="margin-bottom: 18px;">
+                <p style="color: #92400e;">Journal des communications non disponible tant que la migration n est pas appliquee.</p>
             </div>
         <?php endif; ?>
 
         <div class="card" style="margin-bottom: 22px;">
             <h3 style="margin-bottom: 12px;">Nouvelle communication</h3>
-            <?php if (empty($events)): ?>
+            <?php if (!$communicationLogModuleEnabled): ?>
+                <p style="color: var(--text-mid);">Module indisponible temporairement.</p>
+            <?php elseif (empty($events)): ?>
                 <p style="color: var(--text-mid);">Creez d abord un evenement puis ajoutez des invites avant d envoyer une communication.</p>
             <?php else: ?>
                 <form method="post">

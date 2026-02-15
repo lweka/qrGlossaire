@@ -2,12 +2,14 @@
 require_once __DIR__ . '/includes/auth-check.php';
 require_once __DIR__ . '/app/helpers/credits.php';
 requireRole('organizer');
-ensureCreditSystemSchema($pdo);
+$creditSchemaReady = ensureCreditSystemSchema($pdo);
 
 $dashboardSection = 'guests';
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 $message = null;
 $messageType = 'success';
+$summary = getUserCreditSummary($pdo, $userId);
+$creditControlEnabled = !empty($summary['credit_controls_enabled']);
 
 $eventsStmt = $pdo->prepare('SELECT id, title, event_date FROM events WHERE user_id = :user_id ORDER BY event_date DESC, id DESC');
 $eventsStmt->execute(['user_id' => $userId]);
@@ -42,7 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add-g
                 $messageType = 'error';
             } else {
                 $summary = getUserCreditSummary($pdo, $userId);
-                if ($summary['invitation_remaining'] <= 0) {
+                $creditControlEnabled = !empty($summary['credit_controls_enabled']);
+                if ($creditControlEnabled && $summary['invitation_remaining'] <= 0) {
                     $message = 'Credits invitations epuises. Demandez une augmentation avant d ajouter un invite.';
                     $messageType = 'error';
                 } else {
@@ -60,7 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add-g
                         'phone' => $phone !== '' ? $phone : null,
                     ]);
 
-                    $message = 'Invite ajoute avec succes. 1 credit invitation consomme.';
+                    $message = $creditControlEnabled
+                        ? 'Invite ajoute avec succes. 1 credit invitation consomme.'
+                        : 'Invite ajoute avec succes.';
                     $messageType = 'success';
                 }
             }
@@ -72,6 +77,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add-g
 }
 
 $summary = getUserCreditSummary($pdo, $userId);
+$creditControlEnabled = !empty($summary['credit_controls_enabled']);
 
 $guestsStmt = $pdo->prepare(
     'SELECT g.id, g.full_name, g.email, g.phone, g.rsvp_status, g.guest_code, e.title AS event_title
@@ -97,8 +103,15 @@ $guests = $guestsStmt->fetchAll();
         </div>
 
         <div class="card" style="margin-bottom: 18px;">
-            <p><strong>Credits invitations restants:</strong> <?= $summary['invitation_remaining']; ?> / <?= $summary['invitation_total']; ?></p>
-            <p style="margin-top: 6px; color: var(--text-mid);">Chaque invite ajoute consomme 1 credit invitation.</p>
+            <?php if ($creditControlEnabled): ?>
+                <p><strong>Credits invitations restants:</strong> <?= $summary['invitation_remaining']; ?> / <?= $summary['invitation_total']; ?></p>
+                <p style="margin-top: 6px; color: var(--text-mid);">Chaque invite ajoute consomme 1 credit invitation.</p>
+            <?php else: ?>
+                <p><strong>Credits invitations:</strong> mode libre temporaire (module credits non initialise).</p>
+            <?php endif; ?>
+            <?php if (!$creditSchemaReady): ?>
+                <p style="margin-top: 6px; color: #92400e;">Le module credits est en initialisation sur ce serveur.</p>
+            <?php endif; ?>
         </div>
 
         <?php if ($message): ?>
@@ -110,7 +123,7 @@ $guests = $guestsStmt->fetchAll();
 
         <div class="card" style="margin-bottom: 22px;">
             <h3 style="margin-bottom: 12px;">Ajouter un invite</h3>
-            <?php if ($summary['invitation_remaining'] <= 0): ?>
+            <?php if ($creditControlEnabled && $summary['invitation_remaining'] <= 0): ?>
                 <p style="color: #92400e; margin-bottom: 10px;">
                     Credits invitations epuises. Demandez une augmentation avant d ajouter de nouveaux invites.
                 </p>

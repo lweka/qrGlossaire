@@ -2,14 +2,15 @@
 require_once __DIR__ . '/includes/auth-check.php';
 require_once __DIR__ . '/app/helpers/credits.php';
 requireRole('organizer');
-ensureCreditSystemSchema($pdo);
+$creditSchemaReady = ensureCreditSystemSchema($pdo);
 
 $dashboardSection = 'create_event';
 $success = false;
 $errors = [];
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 $creditSummary = getUserCreditSummary($pdo, $userId);
-$canCreateEvent = $creditSummary['event_remaining'] > 0;
+$creditControlEnabled = !empty($creditSummary['credit_controls_enabled']);
+$canCreateEvent = !$creditControlEnabled || $creditSummary['event_remaining'] > 0;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -17,7 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $creditSummary = getUserCreditSummary($pdo, $userId);
-    if ($creditSummary['event_remaining'] <= 0) {
+    $creditControlEnabled = !empty($creditSummary['credit_controls_enabled']);
+    if ($creditControlEnabled && $creditSummary['event_remaining'] <= 0) {
         $errors[] = 'Vous n avez plus de credit de creation evenement. Demandez une augmentation avant de continuer.';
     }
 
@@ -60,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
         $success = true;
         $creditSummary = getUserCreditSummary($pdo, $userId);
-        $canCreateEvent = $creditSummary['event_remaining'] > 0;
+        $creditControlEnabled = !empty($creditSummary['credit_controls_enabled']);
+        $canCreateEvent = !$creditControlEnabled || $creditSummary['event_remaining'] > 0;
     }
 }
 
@@ -130,8 +133,15 @@ HTML;
         </div>
 
         <div class="card" style="margin-bottom: 18px;">
-            <p><strong>Credits evenement restants:</strong> <?= $creditSummary['event_remaining']; ?> / <?= $creditSummary['event_total']; ?></p>
-            <p style="margin-top: 6px; color: var(--text-mid);">Chaque creation d evenement consomme 1 credit.</p>
+            <?php if ($creditControlEnabled): ?>
+                <p><strong>Credits evenement restants:</strong> <?= $creditSummary['event_remaining']; ?> / <?= $creditSummary['event_total']; ?></p>
+                <p style="margin-top: 6px; color: var(--text-mid);">Chaque creation d evenement consomme 1 credit.</p>
+            <?php else: ?>
+                <p><strong>Credits evenement:</strong> mode libre temporaire (module credits non initialise).</p>
+            <?php endif; ?>
+            <?php if (!$creditSchemaReady): ?>
+                <p style="margin-top: 6px; color: #92400e;">Le module credits est en initialisation sur ce serveur.</p>
+            <?php endif; ?>
         </div>
 
         <?php if (!empty($errors)): ?>
