@@ -90,7 +90,7 @@ $pendingUsers = $pdo->query('SELECT id, full_name, email, payment_confirmed FROM
         </div>
     <?php endif; ?>
     <div class="card">
-        <p>Confirmez d abord le paiement, puis envoyez automatiquement le lien d activation (valide 7 jours).</p>
+        <p>Confirmez d abord le paiement (et les credits) dans <a href="<?= $baseUrl; ?>/admin/users">Utilisateurs</a>, puis envoyez automatiquement le lien d activation (valide 7 jours).</p>
         <?php if (empty($pendingUsers)): ?>
             <p style="margin-top: 12px;">Aucun organisateur en attente.</p>
         <?php else: ?>

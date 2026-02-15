@@ -258,8 +258,9 @@ HTML;
             <div class="modal-body p-4 p-md-5 text-center">
                 <div class="register-success-icon">&#10003;</div>
                 <h4 id="registerSuccessTitle" class="mb-3">Inscription enregistree</h4>
-                <p class="text-secondary mb-2">Une fois votre paiement valide dans le systeme, vous recevrez un lien pour valider votre compte.</p>
-                <p class="text-secondary mb-4">Apres validation, vous pourrez acceder a votre espace et configurer vos invitations.</p>
+                <p class="text-secondary mb-2">Votre demande a bien ete recue. Le compte reste en attente jusqu a validation de votre paiement par l administration.</p>
+                <p class="text-secondary mb-2">Des que le paiement est confirme, vous recevez un email d activation depuis <strong>cartelplus-congo@cartelplus.site</strong> avec le lien pour activer votre espace.</p>
+                <p class="text-secondary mb-4">Verifiez aussi les onglets Promotions/Spam, puis marquez l adresse comme fiable pour recevoir les prochains messages.</p>
                 <a class="btn btn-success px-4" href="<?= $baseUrl; ?>/">J'ai compris</a>
             </div>
         </div>

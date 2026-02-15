@@ -19,6 +19,8 @@ CREATE TABLE users (
     status ENUM('pending', 'active', 'suspended', 'expired') DEFAULT 'pending',
     payment_confirmed BOOLEAN DEFAULT FALSE,
     payment_date DATE,
+    invitation_credit_total INT NOT NULL DEFAULT 0,
+    event_credit_total INT NOT NULL DEFAULT 0,
     unique_link_token VARCHAR(64) UNIQUE,
     token_expiry DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -71,4 +73,38 @@ CREATE TABLE admin_logs (
     description TEXT,
     ip_address VARCHAR(45),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE credit_requests (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    requested_invitation_credits INT NOT NULL DEFAULT 0,
+    requested_event_credits INT NOT NULL DEFAULT 0,
+    unit_price_usd DECIMAL(10,2) NOT NULL DEFAULT 0.30,
+    amount_usd DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+    request_note TEXT NULL,
+    admin_note TEXT NULL,
+    approved_by_admin_id INT NULL,
+    approved_at DATETIME NULL,
+    rejected_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_credit_requests_user_status (user_id, status),
+    INDEX idx_credit_requests_status (status),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE communication_logs (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    event_id INT NULL,
+    channel ENUM('email', 'sms', 'whatsapp', 'manual') NOT NULL DEFAULT 'email',
+    recipient_scope ENUM('all', 'pending', 'confirmed', 'declined') NOT NULL DEFAULT 'all',
+    message_text TEXT NOT NULL,
+    recipient_count INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_communication_logs_user_created (user_id, created_at),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE SET NULL
 );

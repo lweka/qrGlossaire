@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../includes/auth-check.php';
+require_once __DIR__ . '/../app/helpers/credits.php';
 requireRole('admin');
+ensureCreditSystemSchema($pdo);
 
-$totalUsers = (int) $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
-$newUsers = (int) $pdo->query("SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)")->fetchColumn();
-$totalEvents = (int) $pdo->query("SELECT COUNT(*) FROM events")->fetchColumn();
-$totalRevenue = (int) $pdo->query("SELECT SUM(IF(payment_confirmed = 1, 1, 0)) FROM users")->fetchColumn();
+$totalUsers = (int) $pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+$newUsers = (int) $pdo->query('SELECT COUNT(*) FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)')->fetchColumn();
+$totalEvents = (int) $pdo->query('SELECT COUNT(*) FROM events')->fetchColumn();
+$totalPaidUsers = (int) $pdo->query('SELECT SUM(IF(payment_confirmed = 1, 1, 0)) FROM users')->fetchColumn();
+$pendingCreditRequests = (int) $pdo->query("SELECT COUNT(*) FROM credit_requests WHERE status = 'pending'")->fetchColumn();
 ?>
 <?php include __DIR__ . '/../includes/header.php'; ?>
 <section class="container section">
@@ -32,12 +35,16 @@ $totalRevenue = (int) $pdo->query("SELECT SUM(IF(payment_confirmed = 1, 1, 0)) F
             <p><strong><?= $newUsers; ?></strong> sur 7 jours</p>
         </div>
         <div class="card">
-            <h3>Événements créés</h3>
-            <p><strong><?= $totalEvents; ?></strong> événements</p>
+            <h3>Evenements crees</h3>
+            <p><strong><?= $totalEvents; ?></strong> evenements</p>
         </div>
         <div class="card">
-            <h3>Revenus</h3>
-            <p><strong><?= $totalRevenue; ?></strong> paiements confirmés</p>
+            <h3>Paiements confirmes</h3>
+            <p><strong><?= $totalPaidUsers; ?></strong> comptes payes</p>
+        </div>
+        <div class="card">
+            <h3>Demandes credits</h3>
+            <p><strong><?= $pendingCreditRequests; ?></strong> en attente</p>
         </div>
     </div>
 </section>
