@@ -20,5 +20,8 @@ $mainCssVersion = is_file($mainCssPath) ? (string) filemtime($mainCssPath) : (st
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="<?= $baseUrl; ?>/assets/images/Logo12.png">
     <link rel="stylesheet" href="<?= $baseUrl; ?>/assets/css/main.css?v=<?= htmlspecialchars($mainCssVersion, ENT_QUOTES, 'UTF-8'); ?>">
+    <?php if (isset($pageHeadExtra) && is_string($pageHeadExtra) && $pageHeadExtra !== ''): ?>
+        <?= $pageHeadExtra; ?>
+    <?php endif; ?>
 </head>
 <body>

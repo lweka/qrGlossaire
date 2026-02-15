@@ -9,6 +9,9 @@
     $mainJsPath = __DIR__ . '/../assets/js/main.js';
     $mainJsVersion = is_file($mainJsPath) ? (string) filemtime($mainJsPath) : (string) time();
     ?>
+    <?php if (isset($pageFooterScripts) && is_string($pageFooterScripts) && $pageFooterScripts !== ''): ?>
+        <?= $pageFooterScripts; ?>
+    <?php endif; ?>
     <script src="<?= $baseUrl; ?>/assets/js/main.js?v=<?= htmlspecialchars($mainJsVersion, ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>

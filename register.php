@@ -148,6 +148,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$pageHeadExtra = '';
+$pageFooterScripts = '';
+if ($success) {
+    $pageHeadExtra = <<<'HTML'
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<style>
+    .register-success-icon {
+        width: 96px;
+        height: 96px;
+        margin: 0 auto 16px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 46px;
+        font-weight: 700;
+        color: #0f5132;
+        background: linear-gradient(145deg, #d1fae5 0%, #86efac 100%);
+        box-shadow: 0 16px 40px rgba(15, 81, 50, 0.25);
+    }
+</style>
+HTML;
+
+    $pageFooterScripts = <<<'HTML'
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const successModalElement = document.getElementById("registerSuccessModal");
+    if (!successModalElement || typeof bootstrap === "undefined") {
+        return;
+    }
+    const successModal = new bootstrap.Modal(successModalElement, {
+        backdrop: "static",
+        keyboard: false
+    });
+    successModal.show();
+});
+</script>
+HTML;
+}
 ?>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <section class="container section">
@@ -161,11 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <p style="color: #fca5a5;"><?= implode('<br>', $errors); ?></p>
             </div>
         <?php endif; ?>
-        <?php if ($success): ?>
-            <div class="card" style="margin-bottom: 18px;">
-                <p style="color: #a7f3d0;">Demande recue. Votre compte est en attente de validation admin.</p>
-            </div>
-        <?php endif; ?>
+        <?php if (!$success): ?>
         <form method="post">
             <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
             <div class="form-group">
@@ -206,8 +243,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button class="button primary" type="submit">Soumettre ma demande</button>
             <p style="margin-top: 14px; color: var(--muted);">Statut attendu : pending (validation admin).</p>
         </form>
+        <?php else: ?>
+            <div class="card" style="margin-bottom: 0;">
+                <p style="color: #0f172a; margin-bottom: 8px;">Demande envoyee avec succes.</p>
+                <p style="color: var(--text-mid); margin-bottom: 0;">Consultez la fenetre de confirmation pour la suite du processus.</p>
+            </div>
+        <?php endif; ?>
     </div>
 </section>
+<?php if ($success): ?>
+<div class="modal fade" id="registerSuccessModal" tabindex="-1" aria-labelledby="registerSuccessTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4 p-md-5 text-center">
+                <div class="register-success-icon">&#10003;</div>
+                <h4 id="registerSuccessTitle" class="mb-3">Inscription enregistree</h4>
+                <p class="text-secondary mb-2">Une fois votre paiement valide dans le systeme, vous recevrez un lien pour valider votre compte.</p>
+                <p class="text-secondary mb-4">Apres validation, vous pourrez acceder a votre espace et configurer vos invitations.</p>
+                <a class="btn btn-success px-4" href="<?= $baseUrl; ?>/">J'ai compris</a>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+<?php if (!$success): ?>
 <script src="https://www.google.com/recaptcha/api.js?render=<?= RECAPTCHA_SITE_KEY; ?>"></script>
 <script>
     const form = document.querySelector('form');
@@ -244,4 +303,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
     }
 </script>
+<?php endif; ?>
 <?php include __DIR__ . '/includes/footer.php'; ?>
