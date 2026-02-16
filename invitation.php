@@ -200,4 +200,9 @@ $activeModel = $invitationModels[0] ?? $modelProfiles['default'];
         <button class="button primary" type="button" style="margin-top: 12px;">Envoyer</button>
     </div>
 </section>
+
+<section class="container" style="padding: 0 0 40px; text-align: center;">
+    <a class="button ghost" href="<?= $baseUrl; ?>/">Retourner a l accueil</a>
+</section>
+
 <?php include __DIR__ . '/includes/footer.php'; ?>
