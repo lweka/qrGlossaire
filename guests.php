@@ -14,15 +14,41 @@ $messageType = 'success';
 $manualSharePreview = null;
 $summary = getUserCreditSummary($pdo, $userId);
 $creditControlEnabled = !empty($summary['credit_controls_enabled']);
+$guestCustomAnswersEnabled = creditColumnExists($pdo, 'guests', 'custom_answers');
 
-$twilioConfigError = null;
-$twilioConfig = getMessagingConfig($twilioConfigError);
-$smsChannelReady = $twilioConfig !== null && trim((string) ($twilioConfig['sms_from'] ?? '')) !== '';
-$whatsAppChannelReady = $twilioConfig !== null && trim((string) ($twilioConfig['whatsapp_from'] ?? '')) !== '';
+$messagingStatus = getMessagingStatusSummary();
+$smsChannelReady = !empty($messagingStatus['sms']['ready']);
+$whatsAppChannelReady = !empty($messagingStatus['whatsapp']['ready']);
+$smsProviderLabel = (string) ($messagingStatus['sms']['provider_label'] ?? 'SMS');
+$whatsAppProviderLabel = (string) ($messagingStatus['whatsapp']['provider_label'] ?? 'WhatsApp');
+$smsChannelError = (string) ($messagingStatus['sms']['error'] ?? '');
+$whatsAppChannelError = (string) ($messagingStatus['whatsapp']['error'] ?? '');
 
 $eventsStmt = $pdo->prepare('SELECT id, title, event_date FROM events WHERE user_id = :user_id ORDER BY event_date DESC, id DESC');
 $eventsStmt->execute(['user_id' => $userId]);
 $events = $eventsStmt->fetchAll();
+
+function parseGuestCustomAnswers(?string $rawJson): array
+{
+    if (!is_string($rawJson) || trim($rawJson) === '') {
+        return [];
+    }
+
+    $decoded = json_decode($rawJson, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+function guestSeatFromCustomAnswers(?string $rawJson): array
+{
+    $data = parseGuestCustomAnswers($rawJson);
+    $tableName = trim((string) ($data['table_name'] ?? ''));
+    $tableNumber = trim((string) ($data['table_number'] ?? ''));
+
+    return [
+        'table_name' => $tableName,
+        'table_number' => $tableNumber,
+    ];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -36,6 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $fullName = sanitizeInput($_POST['full_name'] ?? '');
             $email = sanitizeInput($_POST['email'] ?? '');
             $phone = sanitizeInput($_POST['phone'] ?? '');
+            $tableName = sanitizeInput($_POST['table_name'] ?? '');
+            $tableNumber = sanitizeInput($_POST['table_number'] ?? '');
 
             if ($eventId <= 0 || $fullName === '') {
                 $message = 'Renseignez au minimum l evenement et le nom de l invite.';
@@ -62,24 +90,91 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $messageType = 'error';
                     } else {
                         $guestCode = 'INV-' . strtoupper(substr(generateSecureToken(8), 0, 10));
+                        $customAnswers = null;
+                        if ($guestCustomAnswersEnabled) {
+                            $seatPayload = [
+                                'table_name' => $tableName,
+                                'table_number' => $tableNumber,
+                            ];
+                            $customAnswers = json_encode($seatPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                        }
 
-                        $insertStmt = $pdo->prepare(
-                            'INSERT INTO guests (event_id, guest_code, full_name, email, phone)
-                             VALUES (:event_id, :guest_code, :full_name, :email, :phone)'
-                        );
-                        $insertStmt->execute([
-                            'event_id' => $eventId,
-                            'guest_code' => $guestCode,
-                            'full_name' => $fullName,
-                            'email' => $email !== '' ? $email : null,
-                            'phone' => $phone !== '' ? $phone : null,
-                        ]);
+                        if ($guestCustomAnswersEnabled) {
+                            $insertStmt = $pdo->prepare(
+                                'INSERT INTO guests (event_id, guest_code, full_name, email, phone, custom_answers)
+                                 VALUES (:event_id, :guest_code, :full_name, :email, :phone, :custom_answers)'
+                            );
+                            $insertStmt->execute([
+                                'event_id' => $eventId,
+                                'guest_code' => $guestCode,
+                                'full_name' => $fullName,
+                                'email' => $email !== '' ? $email : null,
+                                'phone' => $phone !== '' ? $phone : null,
+                                'custom_answers' => $customAnswers,
+                            ]);
+                        } else {
+                            $insertStmt = $pdo->prepare(
+                                'INSERT INTO guests (event_id, guest_code, full_name, email, phone)
+                                 VALUES (:event_id, :guest_code, :full_name, :email, :phone)'
+                            );
+                            $insertStmt->execute([
+                                'event_id' => $eventId,
+                                'guest_code' => $guestCode,
+                                'full_name' => $fullName,
+                                'email' => $email !== '' ? $email : null,
+                                'phone' => $phone !== '' ? $phone : null,
+                            ]);
+                        }
 
                         $message = $creditControlEnabled
                             ? 'Invite ajoute avec succes. 1 credit invitation consomme.'
                             : 'Invite ajoute avec succes.';
                         $messageType = 'success';
                     }
+                }
+            }
+        } elseif ($action === 'assign-table') {
+            $guestId = (int) ($_POST['guest_id'] ?? 0);
+            $tableName = sanitizeInput($_POST['table_name'] ?? '');
+            $tableNumber = sanitizeInput($_POST['table_number'] ?? '');
+
+            if ($guestId <= 0) {
+                $message = 'Invite introuvable.';
+                $messageType = 'error';
+            } elseif (!$guestCustomAnswersEnabled) {
+                $message = 'Affectation de table indisponible: colonne custom_answers absente.';
+                $messageType = 'warning';
+            } else {
+                $guestSeatStmt = $pdo->prepare(
+                    'SELECT g.id, g.custom_answers
+                     FROM guests g
+                     INNER JOIN events e ON e.id = g.event_id
+                     WHERE g.id = :guest_id AND e.user_id = :user_id
+                     LIMIT 1'
+                );
+                $guestSeatStmt->execute([
+                    'guest_id' => $guestId,
+                    'user_id' => $userId,
+                ]);
+                $guestSeat = $guestSeatStmt->fetch();
+
+                if (!$guestSeat) {
+                    $message = 'Invite introuvable pour cet utilisateur.';
+                    $messageType = 'error';
+                } else {
+                    $existingMeta = parseGuestCustomAnswers((string) ($guestSeat['custom_answers'] ?? ''));
+                    $existingMeta['table_name'] = $tableName;
+                    $existingMeta['table_number'] = $tableNumber;
+                    $payload = json_encode($existingMeta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+                    $updateSeatStmt = $pdo->prepare('UPDATE guests SET custom_answers = :custom_answers WHERE id = :id');
+                    $updateSeatStmt->execute([
+                        'custom_answers' => $payload,
+                        'id' => $guestId,
+                    ]);
+
+                    $message = 'Table de l invite mise a jour.';
+                    $messageType = 'success';
                 }
             }
         } elseif ($action === 'send-guest-message') {
@@ -206,8 +301,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $summary = getUserCreditSummary($pdo, $userId);
 $creditControlEnabled = !empty($summary['credit_controls_enabled']);
 
+$customAnswersSelect = $guestCustomAnswersEnabled ? 'g.custom_answers' : 'NULL AS custom_answers';
 $guestsStmt = $pdo->prepare(
-    'SELECT g.id, g.event_id, g.full_name, g.email, g.phone, g.rsvp_status, g.guest_code, g.check_in_count, e.title AS event_title
+    'SELECT g.id, g.event_id, g.full_name, g.email, g.phone, g.rsvp_status, g.guest_code, g.check_in_count, ' . $customAnswersSelect . ', e.title AS event_title
      FROM guests g
      INNER JOIN events e ON e.id = g.event_id
      WHERE e.user_id = :user_id
@@ -245,10 +341,13 @@ $guests = $guestsStmt->fetchAll();
             <div class="card" style="margin-bottom: 18px;">
                 <p style="color: #92400e; margin-bottom: 6px;">Canaux SMS/WhatsApp non totalement configures.</p>
                 <p style="color: var(--text-mid); margin: 0;">
-                    Variables requises: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SMS_FROM, TWILIO_WHATSAPP_FROM.
+                    Cela ne bloque pas la connexion ni l envoi Email/Manuel.
                 </p>
-                <?php if ($twilioConfigError): ?>
-                    <p style="color: var(--text-mid); margin: 6px 0 0 0;"><?= htmlspecialchars($twilioConfigError, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php if (!$smsChannelReady && $smsChannelError !== ''): ?>
+                    <p style="color: var(--text-mid); margin: 6px 0 0 0;">SMS (<?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?>): <?= htmlspecialchars($smsChannelError, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php endif; ?>
+                <?php if (!$whatsAppChannelReady && $whatsAppChannelError !== ''): ?>
+                    <p style="color: var(--text-mid); margin: 6px 0 0 0;">WhatsApp (<?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?>): <?= htmlspecialchars($whatsAppChannelError, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
@@ -312,6 +411,14 @@ $guests = $guestsStmt->fetchAll();
                         <label for="phone">Telephone invite</label>
                         <input id="phone" name="phone" type="text" placeholder="+242 06 000 0000">
                     </div>
+                    <div class="form-group">
+                        <label for="table_name">Nom de la table (optionnel)</label>
+                        <input id="table_name" name="table_name" type="text" placeholder="Ex: Famille mariee">
+                    </div>
+                    <div class="form-group">
+                        <label for="table_number">Numero de la table (optionnel)</label>
+                        <input id="table_number" name="table_number" type="text" placeholder="Ex: 12">
+                    </div>
                     <button class="button primary" type="submit">Ajouter l invite</button>
                 </form>
             <?php endif; ?>
@@ -326,6 +433,7 @@ $guests = $guestsStmt->fetchAll();
                         <th>Email</th>
                         <th>Telephone</th>
                         <th>Evenement</th>
+                        <th>Table</th>
                         <th>RSVP</th>
                         <th>Code</th>
                         <th>Check-in</th>
@@ -336,19 +444,37 @@ $guests = $guestsStmt->fetchAll();
                 <tbody>
                     <?php if (empty($guests)): ?>
                         <tr>
-                            <td colspan="9">Aucun invite enregistre pour le moment.</td>
+                            <td colspan="10">Aucun invite enregistre pour le moment.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($guests as $guest): ?>
                             <?php
                             $guestInvitationPath = $baseUrl . '/guest-invitation?code=' . rawurlencode((string) $guest['guest_code']);
                             $guestInvitationAbsolute = buildAbsoluteUrl($guestInvitationPath);
+                            $seat = guestSeatFromCustomAnswers((string) ($guest['custom_answers'] ?? ''));
+                            $seatLabel = trim($seat['table_name']) !== '' ? $seat['table_name'] : 'Non affectee';
+                            if (trim($seat['table_number']) !== '') {
+                                $seatLabel .= ' (#' . $seat['table_number'] . ')';
+                            }
                             ?>
                             <tr>
                                 <td><?= htmlspecialchars((string) ($guest['full_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?= htmlspecialchars((string) ($guest['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?= htmlspecialchars((string) ($guest['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?= htmlspecialchars((string) ($guest['event_title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td>
+                                    <p style="margin-bottom: 8px;"><?= htmlspecialchars($seatLabel, ENT_QUOTES, 'UTF-8'); ?></p>
+                                    <?php if ($guestCustomAnswersEnabled): ?>
+                                        <form method="post" style="display: grid; gap: 6px;">
+                                            <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                                            <input type="hidden" name="action" value="assign-table">
+                                            <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
+                                            <input type="text" name="table_name" placeholder="Nom table" value="<?= htmlspecialchars((string) ($seat['table_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                            <input type="text" name="table_number" placeholder="Numero" value="<?= htmlspecialchars((string) ($seat['table_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                            <button class="button ghost" type="submit">Enregistrer table</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars((string) ($guest['rsvp_status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?= htmlspecialchars((string) ($guest['guest_code'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?= (int) ($guest['check_in_count'] ?? 0); ?></td>
@@ -369,8 +495,8 @@ $guests = $guestsStmt->fetchAll();
                                         <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
                                         <select name="channel" required>
                                             <option value="email">Email</option>
-                                            <option value="sms">SMS<?= $smsChannelReady ? '' : ' (config)'; ?></option>
-                                            <option value="whatsapp">WhatsApp<?= $whatsAppChannelReady ? '' : ' (config)'; ?></option>
+                                            <option value="sms">SMS - <?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $smsChannelReady ? '' : ' (config)'; ?></option>
+                                            <option value="whatsapp">WhatsApp - <?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $whatsAppChannelReady ? '' : ' (config)'; ?></option>
                                             <option value="manual">Manuel</option>
                                         </select>
                                         <button class="button primary" type="submit">Envoyer</button>

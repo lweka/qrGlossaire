@@ -2,17 +2,20 @@
 require_once __DIR__ . '/app/config/database.php';
 require_once __DIR__ . '/app/helpers/security.php';
 require_once __DIR__ . '/app/config/constants.php';
+require_once __DIR__ . '/app/helpers/credits.php';
 
 $baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
 $code = strtoupper(trim((string) ($_GET['code'] ?? '')));
 $code = preg_replace('/[^A-Z0-9\-]/', '', $code ?? '');
 $scanMode = (string) ($_GET['scan'] ?? '') === '1';
+$guestCustomAnswersEnabled = creditColumnExists($pdo, 'guests', 'custom_answers');
 
 $message = null;
 $messageType = 'success';
 
-function findGuestForCheckin(PDO $pdo, string $code): ?array
+function findGuestForCheckin(PDO $pdo, string $code, bool $withCustomAnswers): ?array
 {
+    $customAnswersSelect = $withCustomAnswers ? ', g.custom_answers' : ', NULL AS custom_answers';
     $stmt = $pdo->prepare(
         'SELECT
             g.id,
@@ -24,6 +27,7 @@ function findGuestForCheckin(PDO $pdo, string $code): ?array
             e.title,
             e.event_date,
             e.location
+            ' . $customAnswersSelect . '
          FROM guests g
          INNER JOIN events e ON e.id = g.event_id
          WHERE g.guest_code = :guest_code
@@ -34,9 +38,26 @@ function findGuestForCheckin(PDO $pdo, string $code): ?array
     return $guest ?: null;
 }
 
+function guestSeatForCheckin(?string $rawJson): array
+{
+    if (!is_string($rawJson) || trim($rawJson) === '') {
+        return ['table_name' => '', 'table_number' => ''];
+    }
+
+    $decoded = json_decode($rawJson, true);
+    if (!is_array($decoded)) {
+        return ['table_name' => '', 'table_number' => ''];
+    }
+
+    return [
+        'table_name' => trim((string) ($decoded['table_name'] ?? '')),
+        'table_number' => trim((string) ($decoded['table_number'] ?? '')),
+    ];
+}
+
 $guest = null;
 if ($code !== '') {
-    $guest = findGuestForCheckin($pdo, $code);
+    $guest = findGuestForCheckin($pdo, $code, $guestCustomAnswersEnabled);
 }
 
 if ($scanMode && $guest) {
@@ -53,7 +74,7 @@ if ($scanMode && $guest) {
         );
         $updateStmt->execute(['id' => (int) $guest['id']]);
 
-        $guest = findGuestForCheckin($pdo, $code);
+        $guest = findGuestForCheckin($pdo, $code, $guestCustomAnswersEnabled);
         $updatedCount = (int) ($guest['check_in_count'] ?? 0);
         if ($previousCount <= 0) {
             $message = 'Entree validee avec succes.';
@@ -97,6 +118,20 @@ if ($scanMode && $guest) {
                 <p><strong>Evenement:</strong> <?= htmlspecialchars((string) ($guest['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Date:</strong> <?= htmlspecialchars((string) ($guest['event_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Lieu:</strong> <?= htmlspecialchars((string) ($guest['location'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php
+                $seat = guestSeatForCheckin((string) ($guest['custom_answers'] ?? ''));
+                $seatName = trim((string) ($seat['table_name'] ?? ''));
+                $seatNumber = trim((string) ($seat['table_number'] ?? ''));
+                ?>
+                <?php if ($seatName !== '' || $seatNumber !== ''): ?>
+                    <?php
+                    $seatLabel = $seatName !== '' ? $seatName : 'Table';
+                    if ($seatNumber !== '') {
+                        $seatLabel .= ' (#' . $seatNumber . ')';
+                    }
+                    ?>
+                    <p><strong>Table:</strong> <?= htmlspecialchars($seatLabel, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php endif; ?>
                 <p><strong>Statut RSVP:</strong> <?= htmlspecialchars((string) ($guest['rsvp_status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Scans:</strong> <?= (int) ($guest['check_in_count'] ?? 0); ?></p>
                 <p><strong>Premiere entree:</strong> <?= htmlspecialchars((string) ($guest['check_in_time'] ?? 'Non enregistree'), ENT_QUOTES, 'UTF-8'); ?></p>

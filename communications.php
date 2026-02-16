@@ -14,10 +14,13 @@ $message = null;
 $messageType = 'success';
 $manualDispatches = [];
 
-$twilioConfigError = null;
-$twilioConfig = getMessagingConfig($twilioConfigError);
-$smsChannelReady = $twilioConfig !== null && trim((string) ($twilioConfig['sms_from'] ?? '')) !== '';
-$whatsAppChannelReady = $twilioConfig !== null && trim((string) ($twilioConfig['whatsapp_from'] ?? '')) !== '';
+$messagingStatus = getMessagingStatusSummary();
+$smsChannelReady = !empty($messagingStatus['sms']['ready']);
+$whatsAppChannelReady = !empty($messagingStatus['whatsapp']['ready']);
+$smsProviderLabel = (string) ($messagingStatus['sms']['provider_label'] ?? 'SMS');
+$whatsAppProviderLabel = (string) ($messagingStatus['whatsapp']['provider_label'] ?? 'WhatsApp');
+$smsChannelError = (string) ($messagingStatus['sms']['error'] ?? '');
+$whatsAppChannelError = (string) ($messagingStatus['whatsapp']['error'] ?? '');
 
 $eventsStmt = $pdo->prepare('SELECT id, title FROM events WHERE user_id = :user_id ORDER BY event_date DESC, id DESC');
 $eventsStmt->execute(['user_id' => $userId]);
@@ -266,13 +269,16 @@ if ($communicationLogModuleEnabled) {
         <?php if (!$smsChannelReady || !$whatsAppChannelReady): ?>
             <div class="card" style="margin-bottom: 18px;">
                 <p style="color: #92400e; margin-bottom: 6px;">
-                    Configuration Twilio incomplete pour certains canaux.
+                    Configuration messaging incomplete pour certains canaux.
                 </p>
                 <p style="color: var(--text-mid); margin: 0;">
-                    Variables requises: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SMS_FROM, TWILIO_WHATSAPP_FROM.
+                    Cela ne bloque pas la connexion ni l envoi Email/Manuel.
                 </p>
-                <?php if ($twilioConfigError): ?>
-                    <p style="color: var(--text-mid); margin: 6px 0 0 0;"><?= htmlspecialchars($twilioConfigError, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php if (!$smsChannelReady && $smsChannelError !== ''): ?>
+                    <p style="color: var(--text-mid); margin: 6px 0 0 0;">SMS (<?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?>): <?= htmlspecialchars($smsChannelError, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php endif; ?>
+                <?php if (!$whatsAppChannelReady && $whatsAppChannelError !== ''): ?>
+                    <p style="color: var(--text-mid); margin: 6px 0 0 0;">WhatsApp (<?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?>): <?= htmlspecialchars($whatsAppChannelError, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
@@ -339,8 +345,8 @@ if ($communicationLogModuleEnabled) {
                         <label for="channel">Canal</label>
                         <select id="channel" name="channel" required>
                             <option value="email">Email (envoi actif)</option>
-                            <option value="sms">SMS<?= $smsChannelReady ? ' (envoi actif)' : ' (configuration requise)'; ?></option>
-                            <option value="whatsapp">WhatsApp<?= $whatsAppChannelReady ? ' (envoi actif)' : ' (configuration requise)'; ?></option>
+                            <option value="sms">SMS - <?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $smsChannelReady ? ' (envoi actif)' : ' (configuration requise)'; ?></option>
+                            <option value="whatsapp">WhatsApp - <?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $whatsAppChannelReady ? ' (envoi actif)' : ' (configuration requise)'; ?></option>
                             <option value="manual">Manuel (copie de lien/message)</option>
                         </select>
                     </div>

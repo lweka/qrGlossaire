@@ -35,15 +35,53 @@ php scripts/migrate_credit_system.php
 - Canaux disponibles: `email`, `sms`, `whatsapp`, `manual`
 - En mode `manual`, le systeme genere un message + lien a copier/coller.
 
-### Variables d environnement (SMS/WhatsApp via Twilio)
+### Variables d environnement messaging
+
+Selection des providers:
+
+```bash
+SMS_PROVIDER=twilio
+WHATSAPP_PROVIDER=meta
+DEFAULT_PHONE_COUNTRY_CODE=+242
+```
+
+SMS via Twilio:
 
 ```bash
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_SMS_FROM=+12345678900
+```
+
+WhatsApp via Twilio:
+
+```bash
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+```
+
+SMS via Infobip:
+
+```bash
+SMS_PROVIDER=infobip
+INFOBIP_BASE_URL=https://<votre-sous-domaine>.api.infobip.com
+INFOBIP_API_KEY=<API_KEY>
+INFOBIP_SMS_FROM=InviteQR
 DEFAULT_PHONE_COUNTRY_CODE=+242
 ```
+
+WhatsApp via Meta Cloud API:
+
+```bash
+WHATSAPP_PROVIDER=meta
+WHATSAPP_META_PHONE_NUMBER_ID=<PHONE_NUMBER_ID>
+WHATSAPP_META_ACCESS_TOKEN=<PERMANENT_ACCESS_TOKEN>
+WHATSAPP_META_GRAPH_VERSION=v20.0
+```
+
+Note:
+- En production WhatsApp, Meta peut exiger un template approuve hors fenetre de conversation 24h.
 
 ### Test SMTP en CLI
 

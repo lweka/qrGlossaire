@@ -3,16 +3,19 @@ require_once __DIR__ . '/app/config/database.php';
 require_once __DIR__ . '/app/helpers/security.php';
 require_once __DIR__ . '/app/config/constants.php';
 require_once __DIR__ . '/app/helpers/mailer.php';
+require_once __DIR__ . '/app/helpers/credits.php';
 
 $baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
 $code = strtoupper(trim((string) ($_GET['code'] ?? '')));
 $code = preg_replace('/[^A-Z0-9\-]/', '', $code ?? '');
+$guestCustomAnswersEnabled = creditColumnExists($pdo, 'guests', 'custom_answers');
 
 $message = null;
 $messageType = 'success';
 
-function findGuestByCode(PDO $pdo, string $code): ?array
+function findGuestByCode(PDO $pdo, string $code, bool $withCustomAnswers): ?array
 {
+    $customAnswersSelect = $withCustomAnswers ? ', g.custom_answers' : ', NULL AS custom_answers';
     $stmt = $pdo->prepare(
         'SELECT
             g.id,
@@ -29,6 +32,7 @@ function findGuestByCode(PDO $pdo, string $code): ?array
             e.event_date,
             e.location,
             e.invitation_design
+            ' . $customAnswersSelect . '
          FROM guests g
          INNER JOIN events e ON e.id = g.event_id
          WHERE g.guest_code = :guest_code
@@ -37,6 +41,23 @@ function findGuestByCode(PDO $pdo, string $code): ?array
     $stmt->execute(['guest_code' => $code]);
     $guest = $stmt->fetch();
     return $guest ?: null;
+}
+
+function guestSeatMetaFromJson(?string $rawJson): array
+{
+    if (!is_string($rawJson) || trim($rawJson) === '') {
+        return ['table_name' => '', 'table_number' => ''];
+    }
+
+    $decoded = json_decode($rawJson, true);
+    if (!is_array($decoded)) {
+        return ['table_name' => '', 'table_number' => ''];
+    }
+
+    return [
+        'table_name' => trim((string) ($decoded['table_name'] ?? '')),
+        'table_number' => trim((string) ($decoded['table_number'] ?? '')),
+    ];
 }
 
 function normalizeDisplayText(string $text): string
@@ -160,7 +181,7 @@ function resolveFallbackInvitationVisual(string $eventType): string
 
 $guest = null;
 if ($code !== '') {
-    $guest = findGuestByCode($pdo, $code);
+    $guest = findGuestByCode($pdo, $code, $guestCustomAnswersEnabled);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -184,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'id' => (int) $guest['id'],
                 ]);
 
-                $guest = findGuestByCode($pdo, $code);
+                $guest = findGuestByCode($pdo, $code, $guestCustomAnswersEnabled);
                 if ($status === 'confirmed') {
                     $message = 'Merci. Votre presence est confirmee.';
                     $messageType = 'success';
@@ -200,6 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $eventMessage = '';
 $coverImagePath = '';
 $coverImageAlt = 'Visuel invitation';
+$seatMeta = ['table_name' => '', 'table_number' => ''];
 
 if ($guest) {
     $design = json_decode((string) ($guest['invitation_design'] ?? ''), true);
@@ -215,6 +237,8 @@ if ($guest) {
     if ($coverImagePath === '') {
         $coverImagePath = resolveFallbackInvitationVisual((string) ($guest['event_type'] ?? 'other'));
     }
+
+    $seatMeta = guestSeatMetaFromJson((string) ($guest['custom_answers'] ?? ''));
 }
 
 $coverImageUrl = $coverImagePath !== '' ? buildPublicAssetUrl($coverImagePath, $baseUrl) : '';
@@ -227,12 +251,19 @@ if ($guest) {
     $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . rawurlencode($checkinLink);
 }
 
+$qrDownloadPath = '';
+if ($guest) {
+    $qrDownloadPath = $baseUrl . '/guest-qr?code=' . rawurlencode((string) $guest['guest_code']) . '&download=1';
+}
+
 $displayTitle = normalizeDisplayText((string) ($guest['title'] ?? 'Evenement'));
 $displayGuestName = normalizeDisplayText((string) ($guest['full_name'] ?? ''));
 $displayDate = normalizeDisplayText((string) ($guest['event_date'] ?? ''));
 $displayLocation = normalizeDisplayText((string) ($guest['location'] ?? ''));
 $displayCode = normalizeDisplayText((string) ($guest['guest_code'] ?? ''));
 $displayRsvp = normalizeDisplayText((string) ($guest['rsvp_status'] ?? 'pending'));
+$displayTableName = normalizeDisplayText((string) ($seatMeta['table_name'] ?? ''));
+$displayTableNumber = normalizeDisplayText((string) ($seatMeta['table_number'] ?? ''));
 
 $pageHeadExtra = <<<'HTML'
 <style>
@@ -310,6 +341,15 @@ HTML;
                 <p><strong>Invite:</strong> <?= htmlspecialchars($displayGuestName, ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Date:</strong> <?= htmlspecialchars($displayDate, ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Lieu:</strong> <?= htmlspecialchars($displayLocation, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php if ($displayTableName !== '' || $displayTableNumber !== ''): ?>
+                    <?php
+                    $tableLabel = $displayTableName !== '' ? $displayTableName : 'Table';
+                    if ($displayTableNumber !== '') {
+                        $tableLabel .= ' (#' . $displayTableNumber . ')';
+                    }
+                    ?>
+                    <p><strong>Table:</strong> <?= htmlspecialchars($tableLabel, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php endif; ?>
                 <?php if ($eventMessage !== ''): ?>
                     <p><strong>Message:</strong> <?= htmlspecialchars($eventMessage, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
@@ -339,6 +379,7 @@ HTML;
                     <p style="margin-bottom: 14px;">Presentez ce QR code a l entree pour valider votre arrivee.</p>
                     <div class="qr-box">
                         <img src="<?= htmlspecialchars($qrImageUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="QR code personnel">
+                        <a class="button primary" href="<?= htmlspecialchars($qrDownloadPath, ENT_QUOTES, 'UTF-8'); ?>">Telecharger mon QR</a>
                         <a class="button ghost" href="<?= htmlspecialchars($checkinLink, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Lien de validation</a>
                     </div>
                 </div>
