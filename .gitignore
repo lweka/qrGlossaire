@@ -1,2 +1,5 @@
 /vendor/
 /storage/logs/*.log
+/assets/images/user_designs/*
+!/assets/images/user_designs/.gitkeep
+!/assets/images/user_designs/.htaccess

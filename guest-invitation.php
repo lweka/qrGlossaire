@@ -25,6 +25,7 @@ function findGuestByCode(PDO $pdo, string $code): ?array
             g.check_in_time,
             e.id AS event_id,
             e.title,
+            e.event_type,
             e.event_date,
             e.location,
             e.invitation_design
@@ -36,6 +37,125 @@ function findGuestByCode(PDO $pdo, string $code): ?array
     $stmt->execute(['guest_code' => $code]);
     $guest = $stmt->fetch();
     return $guest ?: null;
+}
+
+function normalizeDisplayText(string $text): string
+{
+    $value = trim($text);
+    if ($value === '') {
+        return '';
+    }
+
+    $value = html_entity_decode($value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+    if (
+        function_exists('mb_check_encoding')
+        && function_exists('mb_convert_encoding')
+        && !mb_check_encoding($value, 'UTF-8')
+    ) {
+        $converted = @mb_convert_encoding($value, 'UTF-8', 'ISO-8859-1');
+        if (is_string($converted) && $converted !== '') {
+            $value = $converted;
+        }
+    }
+
+    return $value;
+}
+
+function normalizeStoredAssetPath(string $path): string
+{
+    $value = trim(str_replace('\\', '/', $path));
+    if ($value === '') {
+        return '';
+    }
+
+    if (preg_match('#^https?://#i', $value) === 1) {
+        return $value;
+    }
+
+    $value = ltrim($value, '/');
+    if (strpos($value, '..') !== false) {
+        return '';
+    }
+    if (strpos($value, 'assets/images/') !== 0) {
+        return '';
+    }
+
+    return $value;
+}
+
+function buildPublicAssetUrl(string $path, string $baseUrl): string
+{
+    $safePath = normalizeStoredAssetPath($path);
+    if ($safePath === '') {
+        return '';
+    }
+
+    if (preg_match('#^https?://#i', $safePath) === 1) {
+        return $safePath;
+    }
+
+    $segments = array_filter(explode('/', $safePath), static fn ($segment): bool => $segment !== '');
+    $encodedSegments = array_map(static fn ($segment): string => rawurlencode($segment), $segments);
+
+    return $baseUrl . '/' . implode('/', $encodedSegments);
+}
+
+function resolveFallbackInvitationVisual(string $eventType): string
+{
+    $directory = __DIR__ . '/assets/images/modele_invitations';
+    if (!is_dir($directory)) {
+        return '';
+    }
+
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
+    $entries = scandir($directory);
+    if ($entries === false) {
+        return '';
+    }
+
+    $eventType = strtolower(trim($eventType));
+    $keywordsByType = [
+        'wedding' => ['mariage', 'wedding', 'marry'],
+        'birthday' => ['anniv', 'anniversaire', 'birthday'],
+        'corporate' => ['confe', 'conference', 'corporate', 'business'],
+        'other' => ['invite', 'modele', 'model'],
+    ];
+
+    $candidateFiles = [];
+    foreach ($entries as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+        $fullPath = $directory . DIRECTORY_SEPARATOR . $entry;
+        if (!is_file($fullPath)) {
+            continue;
+        }
+        $ext = strtolower((string) pathinfo($entry, PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowedExtensions, true)) {
+            continue;
+        }
+        $candidateFiles[] = $entry;
+    }
+
+    if (empty($candidateFiles)) {
+        return '';
+    }
+
+    natcasesort($candidateFiles);
+    $candidateFiles = array_values($candidateFiles);
+
+    $keywords = $keywordsByType[$eventType] ?? $keywordsByType['other'];
+    foreach ($candidateFiles as $file) {
+        $name = strtolower((string) pathinfo($file, PATHINFO_FILENAME));
+        foreach ($keywords as $keyword) {
+            if (strpos($name, $keyword) !== false) {
+                return 'assets/images/modele_invitations/' . $file;
+            }
+        }
+    }
+
+    return 'assets/images/modele_invitations/' . $candidateFiles[0];
 }
 
 $guest = null;
@@ -78,12 +198,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $eventMessage = '';
+$coverImagePath = '';
+$coverImageAlt = 'Visuel invitation';
+
 if ($guest) {
     $design = json_decode((string) ($guest['invitation_design'] ?? ''), true);
     if (is_array($design)) {
-        $eventMessage = trim((string) ($design['message'] ?? ''));
+        $eventMessage = normalizeDisplayText((string) ($design['message'] ?? ''));
+        $coverImagePath = normalizeStoredAssetPath((string) ($design['cover_image'] ?? ''));
+        $coverImageAltRaw = normalizeDisplayText((string) ($design['cover_alt'] ?? ''));
+        if ($coverImageAltRaw !== '') {
+            $coverImageAlt = $coverImageAltRaw;
+        }
+    }
+
+    if ($coverImagePath === '') {
+        $coverImagePath = resolveFallbackInvitationVisual((string) ($guest['event_type'] ?? 'other'));
     }
 }
+
+$coverImageUrl = $coverImagePath !== '' ? buildPublicAssetUrl($coverImagePath, $baseUrl) : '';
 
 $checkinLink = '';
 $qrImageUrl = '';
@@ -92,10 +226,51 @@ if ($guest) {
     $checkinLink = buildAbsoluteUrl($checkinPath);
     $qrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=' . rawurlencode($checkinLink);
 }
+
+$displayTitle = normalizeDisplayText((string) ($guest['title'] ?? 'Evenement'));
+$displayGuestName = normalizeDisplayText((string) ($guest['full_name'] ?? ''));
+$displayDate = normalizeDisplayText((string) ($guest['event_date'] ?? ''));
+$displayLocation = normalizeDisplayText((string) ($guest['location'] ?? ''));
+$displayCode = normalizeDisplayText((string) ($guest['guest_code'] ?? ''));
+$displayRsvp = normalizeDisplayText((string) ($guest['rsvp_status'] ?? 'pending'));
+
+$pageHeadExtra = <<<'HTML'
+<style>
+    .guest-invite-visual {
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
+        margin-bottom: 18px;
+        background: #0b1220;
+    }
+    .guest-invite-visual img {
+        width: 100%;
+        min-height: 260px;
+        max-height: 420px;
+        object-fit: cover;
+        display: block;
+    }
+    .guest-invite-visual-overlay {
+        position: absolute;
+        inset: auto 0 0 0;
+        padding: 18px 20px;
+        background: linear-gradient(180deg, rgba(2, 6, 23, 0) 0%, rgba(2, 6, 23, 0.88) 65%);
+        color: #ffffff;
+    }
+    .guest-invite-visual-overlay h3 {
+        margin: 0 0 6px 0;
+        color: #ffffff;
+    }
+    .guest-invite-visual-overlay p {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.9);
+    }
+</style>
+HTML;
 ?>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <section class="container section">
-    <div class="form-card" style="max-width: 760px;">
+    <div class="form-card" style="max-width: 860px;">
         <div class="section-title">
             <span>Invitation</span>
             <h2>Votre invitation personnelle</h2>
@@ -120,16 +295,26 @@ if ($guest) {
                 <p style="color: #dc2626;">Invitation invalide ou non reconnue.</p>
             </div>
         <?php else: ?>
+            <?php if ($coverImageUrl !== ''): ?>
+                <div class="guest-invite-visual">
+                    <img src="<?= htmlspecialchars($coverImageUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="<?= htmlspecialchars($coverImageAlt, ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="guest-invite-visual-overlay">
+                        <h3><?= htmlspecialchars($displayTitle, ENT_QUOTES, 'UTF-8'); ?></h3>
+                        <p><?= htmlspecialchars($displayDate, ENT_QUOTES, 'UTF-8'); ?><?= $displayLocation !== '' ? ' - ' . htmlspecialchars($displayLocation, ENT_QUOTES, 'UTF-8') : ''; ?></p>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <div class="card" style="margin-bottom: 18px;">
-                <h3 style="margin-bottom: 10px;"><?= htmlspecialchars((string) ($guest['title'] ?? 'Evenement'), ENT_QUOTES, 'UTF-8'); ?></h3>
-                <p><strong>Invite:</strong> <?= htmlspecialchars((string) ($guest['full_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
-                <p><strong>Date:</strong> <?= htmlspecialchars((string) ($guest['event_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
-                <p><strong>Lieu:</strong> <?= htmlspecialchars((string) ($guest['location'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
+                <h3 style="margin-bottom: 10px;"><?= htmlspecialchars($displayTitle, ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p><strong>Invite:</strong> <?= htmlspecialchars($displayGuestName, ENT_QUOTES, 'UTF-8'); ?></p>
+                <p><strong>Date:</strong> <?= htmlspecialchars($displayDate, ENT_QUOTES, 'UTF-8'); ?></p>
+                <p><strong>Lieu:</strong> <?= htmlspecialchars($displayLocation, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php if ($eventMessage !== ''): ?>
                     <p><strong>Message:</strong> <?= htmlspecialchars($eventMessage, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
-                <p><strong>Code invite:</strong> <?= htmlspecialchars((string) ($guest['guest_code'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
-                <p><strong>Statut RSVP:</strong> <?= htmlspecialchars((string) ($guest['rsvp_status'] ?? 'pending'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <p><strong>Code invite:</strong> <?= htmlspecialchars($displayCode, ENT_QUOTES, 'UTF-8'); ?></p>
+                <p><strong>Statut RSVP:</strong> <?= htmlspecialchars($displayRsvp, ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
 
             <div class="card" style="margin-bottom: 18px;">
