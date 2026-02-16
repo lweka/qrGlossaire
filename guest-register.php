@@ -1,0 +1,266 @@
+<?php
+require_once __DIR__ . '/app/config/database.php';
+require_once __DIR__ . '/app/helpers/security.php';
+require_once __DIR__ . '/app/config/constants.php';
+require_once __DIR__ . '/app/helpers/credits.php';
+require_once __DIR__ . '/app/helpers/mailer.php';
+require_once __DIR__ . '/app/helpers/guest_registration.php';
+
+$baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
+$guestRegistrationSchemaReady = ensureGuestRegistrationSchema($pdo);
+$token = normalizeGuestRegistrationToken((string) ($_GET['token'] ?? ($_POST['token'] ?? '')));
+
+$event = null;
+$message = null;
+$messageType = 'success';
+$createdGuestCode = '';
+$createdInvitationPath = '';
+$createdInvitationAbsolute = '';
+$createdQrImageUrl = '';
+$createdCheckinAbsolute = '';
+$creditControlEnabled = false;
+$invitationRemaining = null;
+
+$formFullName = '';
+$formEmail = '';
+$formPhone = '';
+
+$refreshEventAndCredits = static function () use ($pdo, $token, $guestRegistrationSchemaReady, &$event, &$creditControlEnabled, &$invitationRemaining): void {
+    $event = null;
+    $creditControlEnabled = false;
+    $invitationRemaining = null;
+
+    if (!$guestRegistrationSchemaReady || $token === '') {
+        return;
+    }
+
+    $event = findEventByGuestRegistrationToken($pdo, $token);
+    if (!$event) {
+        return;
+    }
+
+    $summary = getUserCreditSummary($pdo, (int) ($event['user_id'] ?? 0));
+    $creditControlEnabled = !empty($summary['credit_controls_enabled']);
+    if ($creditControlEnabled) {
+        $invitationRemaining = (int) ($summary['invitation_remaining'] ?? 0);
+    }
+};
+
+$refreshEventAndCredits();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $formFullName = sanitizeInput($_POST['full_name'] ?? '');
+    $formEmail = sanitizeInput($_POST['email'] ?? '');
+    $formPhone = sanitizeInput($_POST['phone'] ?? '');
+
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $message = 'Token de securite invalide.';
+        $messageType = 'error';
+    } elseif (!$guestRegistrationSchemaReady) {
+        $message = 'Le service d inscription est temporairement indisponible.';
+        $messageType = 'error';
+    } elseif (!$event) {
+        $message = 'Lien d inscription invalide ou introuvable.';
+        $messageType = 'error';
+    } else {
+        $creation = createGuestThroughRegistrationLink(
+            $pdo,
+            (int) ($event['id'] ?? 0),
+            (int) ($event['user_id'] ?? 0),
+            $formFullName,
+            $formEmail,
+            $formPhone
+        );
+
+        if (!empty($creation['ok'])) {
+            $createdGuestCode = (string) ($creation['guest_code'] ?? '');
+            $createdInvitationPath = $baseUrl . '/guest-invitation?code=' . rawurlencode($createdGuestCode);
+            $createdInvitationAbsolute = buildAbsoluteUrl($createdInvitationPath);
+
+            $checkinPath = $baseUrl . '/guest-checkin?code=' . rawurlencode($createdGuestCode) . '&scan=1';
+            $createdCheckinAbsolute = buildAbsoluteUrl($checkinPath);
+            $createdQrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . rawurlencode($createdCheckinAbsolute);
+
+            $message = 'Inscription enregistree avec succes.';
+            if (!empty($creation['credit_control_enabled'])) {
+                $remainingAfter = max(0, (int) ($creation['invitation_remaining_after'] ?? 0));
+                $message .= ' Credits invitations restants pour ce lien: ' . $remainingAfter . '.';
+            }
+            $messageType = 'success';
+
+            $formFullName = '';
+            $formEmail = '';
+            $formPhone = '';
+        } else {
+            $message = (string) ($creation['message'] ?? 'Impossible de creer l invitation.');
+            $messageType = stripos($message, 'Limite atteinte') !== false ? 'warning' : 'error';
+        }
+    }
+
+    $refreshEventAndCredits();
+}
+
+$eventIsOpen = $event
+    && (int) ($event['is_active'] ?? 0) === 1
+    && (int) ($event['public_registration_enabled'] ?? 0) === 1;
+$creditsAvailable = !$creditControlEnabled || (int) ($invitationRemaining ?? 0) > 0;
+
+$pageHeadExtra = <<<'HTML'
+<style>
+    .public-register-wrap {
+        max-width: 920px;
+        margin: 0 auto;
+    }
+
+    .public-register-event {
+        margin-bottom: 18px;
+    }
+
+    .public-register-event h3 {
+        margin-bottom: 8px;
+    }
+
+    .public-register-meta {
+        margin: 6px 0 0 0;
+        color: var(--text-mid);
+    }
+
+    .public-register-ref {
+        margin-top: 10px;
+        padding: 10px;
+        border-radius: 12px;
+        border: 1px dashed rgba(148, 163, 184, 0.45);
+        background: #f8fafc;
+        color: var(--text-dark);
+        font-size: 0.9rem;
+        word-break: break-all;
+    }
+
+    .public-register-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+
+    .public-register-actions .button {
+        min-width: 200px;
+    }
+
+    @media (max-width: 768px) {
+        .public-register-actions {
+            display: grid;
+        }
+
+        .public-register-actions .button {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+</style>
+HTML;
+?>
+<?php include __DIR__ . '/includes/header.php'; ?>
+<section class="container section">
+    <div class="form-card public-register-wrap">
+        <div class="section-title">
+            <span>Inscription invite</span>
+            <h2>Recevoir mon invitation QR</h2>
+        </div>
+
+        <?php if ($message): ?>
+            <div class="card" style="margin-bottom: 18px;">
+                <?php
+                $messageColor = '#166534';
+                if ($messageType === 'error') {
+                    $messageColor = '#dc2626';
+                } elseif ($messageType === 'warning') {
+                    $messageColor = '#92400e';
+                }
+                ?>
+                <p style="color: <?= $messageColor; ?>;"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p>
+            </div>
+        <?php endif; ?>
+
+        <?php if (!$guestRegistrationSchemaReady): ?>
+            <div class="card">
+                <p style="color: #dc2626;">Service d inscription indisponible pour le moment.</p>
+            </div>
+        <?php elseif (!$event): ?>
+            <div class="card">
+                <p style="color: #dc2626;">Ce lien n est pas valide ou l evenement n existe plus.</p>
+            </div>
+        <?php else: ?>
+            <div class="card public-register-event">
+                <h3><?= htmlspecialchars((string) ($event['title'] ?? 'Evenement'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p class="public-register-meta"><strong>Date:</strong> <?= htmlspecialchars((string) ($event['event_date'] ?? 'A definir'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <p class="public-register-meta"><strong>Lieu:</strong> <?= htmlspecialchars((string) ($event['location'] ?? 'A definir'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <p class="public-register-meta"><strong>Organisateur:</strong> <?= htmlspecialchars((string) ($event['organizer_name'] ?? 'Organisateur'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php if ($creditControlEnabled): ?>
+                    <p class="public-register-meta">
+                        <strong>Places restantes via credits:</strong>
+                        <?= (int) ($invitationRemaining ?? 0); ?>
+                    </p>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($createdGuestCode !== ''): ?>
+                <div class="card" style="margin-bottom: 18px;">
+                    <h3 style="margin-bottom: 10px;">Votre inscription est confirmee</h3>
+                    <p class="public-register-meta" style="margin-top: 0;">Conservez ce numero de reference:</p>
+                    <p class="public-register-ref"><strong><?= htmlspecialchars($createdGuestCode, ENT_QUOTES, 'UTF-8'); ?></strong></p>
+                    <p class="public-register-meta">Lien personnel invitation:</p>
+                    <p class="public-register-ref"><?= htmlspecialchars($createdInvitationAbsolute, ENT_QUOTES, 'UTF-8'); ?></p>
+                    <div class="public-register-actions">
+                        <a class="button primary" href="<?= htmlspecialchars($createdInvitationPath, ENT_QUOTES, 'UTF-8'); ?>">Ouvrir mon invitation</a>
+                        <a class="button ghost" href="<?= htmlspecialchars($createdInvitationPath, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet</a>
+                    </div>
+                    <?php if ($createdQrImageUrl !== '' && $createdCheckinAbsolute !== ''): ?>
+                        <div class="qr-box" style="margin-top: 14px;">
+                            <img src="<?= htmlspecialchars($createdQrImageUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="QR code de reference">
+                            <p class="public-register-meta" style="text-align: center;">
+                                Ce QR code reference votre lien de validation:
+                                <br>
+                                <?= htmlspecialchars($createdCheckinAbsolute, ENT_QUOTES, 'UTF-8'); ?>
+                            </p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!$eventIsOpen): ?>
+                <div class="card">
+                    <p style="color: #92400e;">Les inscriptions sont fermees pour cet evenement.</p>
+                </div>
+            <?php elseif (!$creditsAvailable): ?>
+                <div class="card">
+                    <p style="color: #92400e;">
+                        Vous ne pouvez plus creer d invitation avec ce lien: le quota de credits invitations est atteint.
+                    </p>
+                </div>
+            <?php else: ?>
+                <div class="card">
+                    <h3 style="margin-bottom: 10px;">Remplissez votre formulaire</h3>
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                        <input type="hidden" name="token" value="<?= htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
+                        <div class="form-group">
+                            <label for="full_name">Nom complet</label>
+                            <input id="full_name" name="full_name" type="text" required placeholder="Ex: Jean Mavoungou" value="<?= htmlspecialchars($formFullName, ENT_QUOTES, 'UTF-8'); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email (optionnel)</label>
+                            <input id="email" name="email" type="email" placeholder="invite@email.com" value="<?= htmlspecialchars($formEmail, ENT_QUOTES, 'UTF-8'); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Telephone (optionnel)</label>
+                            <input id="phone" name="phone" type="text" placeholder="+242 06 000 0000" value="<?= htmlspecialchars($formPhone, ENT_QUOTES, 'UTF-8'); ?>">
+                        </div>
+                        <button class="button primary" type="submit">Creer mon invitation</button>
+                    </form>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
+</section>
+<?php include __DIR__ . '/includes/footer.php'; ?>

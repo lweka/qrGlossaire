@@ -36,6 +36,8 @@ CREATE TABLE events (
     location TEXT,
     invitation_design JSON,
     settings JSON,
+    public_registration_token VARCHAR(64) UNIQUE,
+    public_registration_enabled BOOLEAN DEFAULT TRUE,
     is_active BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

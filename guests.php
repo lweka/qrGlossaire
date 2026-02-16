@@ -3,6 +3,7 @@ require_once __DIR__ . '/includes/auth-check.php';
 require_once __DIR__ . '/app/helpers/credits.php';
 require_once __DIR__ . '/app/helpers/mailer.php';
 require_once __DIR__ . '/app/helpers/messaging.php';
+require_once __DIR__ . '/app/helpers/guest_registration.php';
 requireRole('organizer');
 $creditSchemaReady = ensureCreditSystemSchema($pdo);
 $baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
@@ -27,6 +28,30 @@ $whatsAppChannelError = (string) ($messagingStatus['whatsapp']['error'] ?? '');
 $eventsStmt = $pdo->prepare('SELECT id, title, event_date FROM events WHERE user_id = :user_id ORDER BY event_date DESC, id DESC');
 $eventsStmt->execute(['user_id' => $userId]);
 $events = $eventsStmt->fetchAll();
+$guestRegistrationSchemaReady = ensureGuestRegistrationSchema($pdo);
+$buildEventRegistrationLinks = static function (array $eventRows) use ($pdo, $userId, $baseUrl): array {
+    $links = [];
+    foreach ($eventRows as $eventRow) {
+        $eventId = (int) ($eventRow['id'] ?? 0);
+        if ($eventId <= 0) {
+            continue;
+        }
+
+        $token = getOrCreateGuestRegistrationToken($pdo, $eventId, $userId);
+        if ($token === '') {
+            continue;
+        }
+
+        $path = $baseUrl . '/guest-register?token=' . rawurlencode($token);
+        $links[$eventId] = [
+            'path' => $path,
+            'absolute' => buildAbsoluteUrl($path),
+        ];
+    }
+
+    return $links;
+};
+$eventRegistrationLinks = $guestRegistrationSchemaReady ? $buildEventRegistrationLinks($events) : [];
 
 function parseGuestCustomAnswers(?string $rawJson): array
 {
@@ -296,6 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $eventsStmt->execute(['user_id' => $userId]);
     $events = $eventsStmt->fetchAll();
+    $eventRegistrationLinks = $guestRegistrationSchemaReady ? $buildEventRegistrationLinks($events) : [];
 }
 
 $summary = getUserCreditSummary($pdo, $userId);
@@ -323,6 +349,51 @@ $pageHeadExtra = <<<'HTML'
     .guests-register-card > h3 {
         font-size: 1.1rem;
         margin-bottom: 10px !important;
+    }
+
+    .event-link-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .event-link-card {
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 12px;
+        background: #f8fafc;
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+    }
+
+    .event-link-card h4 {
+        margin: 0;
+        font-size: 0.95rem;
+        color: var(--text-dark);
+    }
+
+    .event-link-meta {
+        margin: 5px 0 0 0;
+        color: var(--text-mid);
+        font-size: 0.83rem;
+    }
+
+    .event-link-url {
+        margin: 8px 0 0 0;
+        padding: 8px 10px;
+        border: 1px dashed rgba(148, 163, 184, 0.45);
+        border-radius: 10px;
+        background: #ffffff;
+        color: #1e293b;
+        font-size: 0.79rem;
+        line-height: 1.35;
+        word-break: break-all;
+    }
+
+    .event-link-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 
     .guest-list-grid {
@@ -514,11 +585,13 @@ $pageHeadExtra = <<<'HTML'
         }
 
         .guests-link-actions,
+        .event-link-actions,
         .guests-actions-form {
             display: grid;
             gap: 8px;
         }
 
+        .event-link-actions .button,
         .guests-link-actions .button,
         .guests-actions-form .button,
         .guests-actions-form select,
@@ -596,6 +669,63 @@ HTML;
                 <button type="button" class="button ghost" style="margin-top: 10px;" data-copy-manual-preview="#manual_share_preview">Copier le message</button>
             </div>
         <?php endif; ?>
+
+        <div class="card" style="margin-bottom: 22px;">
+            <h3 style="margin-bottom: 10px;">Lien d inscription autonome</h3>
+            <p style="margin: 0; color: var(--text-mid);">
+                Partagez ce lien pour que chaque invite remplisse son propre formulaire. Le systeme cree automatiquement
+                le code reference et stoppe la creation quand les credits invitations sont epuises.
+            </p>
+
+            <?php if (!$guestRegistrationSchemaReady): ?>
+                <p style="margin-top: 10px; color: #92400e;">
+                    Le module de lien public n est pas encore disponible sur ce serveur.
+                </p>
+            <?php elseif (empty($events)): ?>
+                <p style="margin-top: 10px; color: var(--text-mid);">
+                    Creez d abord un evenement pour obtenir un lien a partager.
+                </p>
+            <?php else: ?>
+                <div class="event-link-list">
+                    <?php foreach ($events as $event): ?>
+                        <?php
+                        $eventId = (int) ($event['id'] ?? 0);
+                        $registrationLink = $eventRegistrationLinks[$eventId]['absolute'] ?? '';
+                        $registrationPath = $eventRegistrationLinks[$eventId]['path'] ?? '';
+                        ?>
+                        <article class="event-link-card">
+                            <div>
+                                <h4><?= htmlspecialchars((string) ($event['title'] ?? 'Evenement'), ENT_QUOTES, 'UTF-8'); ?></h4>
+                                <p class="event-link-meta">
+                                    Date:
+                                    <?= htmlspecialchars((string) ($event['event_date'] ?? 'Non definie'), ENT_QUOTES, 'UTF-8'); ?>
+                                </p>
+                                <?php if ($registrationLink !== ''): ?>
+                                    <p class="event-link-url"><?= htmlspecialchars($registrationLink, ENT_QUOTES, 'UTF-8'); ?></p>
+                                <?php else: ?>
+                                    <p class="event-link-meta" style="margin-top: 8px; color: #92400e;">
+                                        Impossible de generer le lien public pour cet evenement.
+                                    </p>
+                                <?php endif; ?>
+                            </div>
+
+                            <?php if ($registrationLink !== '' && $registrationPath !== ''): ?>
+                                <div class="event-link-actions">
+                                    <a class="button ghost" href="<?= htmlspecialchars($registrationPath, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Ouvrir formulaire</a>
+                                    <button
+                                        class="button primary"
+                                        type="button"
+                                        data-copy-link="<?= htmlspecialchars($registrationLink, ENT_QUOTES, 'UTF-8'); ?>"
+                                    >
+                                        Copier lien formulaire
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
 
         <div class="card" style="margin-bottom: 22px;">
             <h3 style="margin-bottom: 12px;">Ajouter un invite</h3>
@@ -752,9 +882,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
             try {
                 await navigator.clipboard.writeText(link);
+                const originalLabel = button.textContent;
                 button.textContent = "Copie";
                 setTimeout(function () {
-                    button.textContent = "Copier";
+                    button.textContent = originalLabel;
                 }, 1200);
             } catch (error) {
                 window.prompt("Copiez ce lien:", link);
