@@ -47,7 +47,7 @@ sort($sliderImages, SORT_NATURAL | SORT_FLAG_CASE);
             <a href="#temoignages">Témoignages</a>
             <a href="#faq">FAQ</a>
         </div>
-        <div>
+        <div class="nav-actions">
             <a class="button ghost" href="<?= $baseUrl; ?>/login">Se connecter</a>
             <a class="button primary" href="<?= $baseUrl; ?>/register">Créer mon invitation</a>
         </div>

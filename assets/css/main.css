@@ -111,6 +111,18 @@ a {
   color: var(--text-dark);
 }
 
+.nav-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.nav-actions .button {
+  white-space: nowrap;
+}
+
 .button {
   padding: 12px 22px;
   border-radius: 999px;
@@ -683,8 +695,23 @@ textarea::placeholder {
 }
 
 @media (max-width: 768px) {
+  .navbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
   .nav-links {
     display: none;
+  }
+
+  .nav-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+    line-height: 1.2;
   }
 
   .hero {
