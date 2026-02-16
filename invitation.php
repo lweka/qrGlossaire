@@ -1,4 +1,4 @@
-<?php include __DIR__ . '/includes/header.php'; ?>
+﻿<?php include __DIR__ . '/includes/header.php'; ?>
 <?php
 $modelsDirectory = __DIR__ . '/assets/images/modele_invitations';
 $modelsWebPath = 'assets/images/modele_invitations';
@@ -8,36 +8,36 @@ $modelProfiles = [
     'conference' => [
         'type_label' => 'Conference',
         'headline' => 'Invitation Conference',
-        'meta' => 'Mercredi 04 novembre 2026 · 09h30 · Brazzaville',
+        'meta' => 'Mercredi 04 novembre 2026 - 09h30',
         'date' => '04 novembre 2026',
-        'location' => 'Centre de conferences, Brazzaville',
+        'location' => 'Lieu a confirmer',
         'dress_code' => 'Business formel',
         'rsvp_deadline' => '25 octobre 2026',
     ],
     'mariage' => [
         'type_label' => 'Mariage',
         'headline' => 'Invitation Mariage',
-        'meta' => 'Samedi 12 juillet 2026 · 16h00 · Pointe-Noire',
+        'meta' => 'Samedi 12 juillet 2026 - 16h00',
         'date' => '12 juillet 2026',
-        'location' => 'Salle des fetes Marina, Pointe-Noire',
+        'location' => 'Lieu a confirmer',
         'dress_code' => 'Elegance noire',
         'rsvp_deadline' => '30 juin 2026',
     ],
     'anniversaire' => [
         'type_label' => 'Anniversaire',
         'headline' => 'Invitation Anniversaire',
-        'meta' => 'Vendredi 08 mai 2026 · 19h00 · Dolisie',
+        'meta' => 'Vendredi 08 mai 2026 - 19h00',
         'date' => '08 mai 2026',
-        'location' => 'Lounge Signature, Dolisie',
+        'location' => 'Lieu a confirmer',
         'dress_code' => 'Smart casual',
         'rsvp_deadline' => '30 avril 2026',
     ],
     'corporate' => [
         'type_label' => 'Corporate',
         'headline' => 'Invitation Corporate',
-        'meta' => 'Jeudi 22 septembre 2026 · 10h00 · Pointe-Noire',
+        'meta' => 'Jeudi 22 septembre 2026 - 10h00',
         'date' => '22 septembre 2026',
-        'location' => 'Hotel Atlantic, Pointe-Noire',
+        'location' => 'Lieu a confirmer',
         'dress_code' => 'Tenue professionnelle',
         'rsvp_deadline' => '10 septembre 2026',
     ],
@@ -202,7 +202,8 @@ $activeModel = $invitationModels[0] ?? $modelProfiles['default'];
 </section>
 
 <section class="container" style="padding: 0 0 40px; text-align: center;">
-    <a class="button ghost" href="<?= $baseUrl; ?>/">Retourner a l accueil</a>
+    <a class="button ghost" href="<?= $baseUrl; ?>/">Retourner Ã  l'accueil</a>
 </section>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
+
