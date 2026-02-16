@@ -312,6 +312,125 @@ $guestsStmt = $pdo->prepare(
 );
 $guestsStmt->execute(['user_id' => $userId]);
 $guests = $guestsStmt->fetchAll();
+
+$pageHeadExtra = <<<'HTML'
+<style>
+    .guests-table-wrap {
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 14px;
+        overflow-x: auto;
+        background: #ffffff;
+    }
+
+    .guests-table-wrap .table {
+        margin-top: 0;
+        min-width: 1320px;
+    }
+
+    .guests-table-wrap .table th,
+    .guests-table-wrap .table td {
+        vertical-align: top;
+    }
+
+    .guests-link-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .guests-seat-label {
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .guests-seat-form {
+        display: grid;
+        gap: 6px;
+        min-width: 190px;
+    }
+
+    .guests-actions-form {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .guests-actions-form select {
+        min-width: 180px;
+    }
+
+    @media (max-width: 768px) {
+        .guests-table-wrap {
+            border: none;
+            overflow: visible;
+            background: transparent;
+        }
+
+        .guests-table-wrap .table {
+            min-width: 0;
+        }
+
+        .guests-table-wrap .table,
+        .guests-table-wrap .table tbody,
+        .guests-table-wrap .table tr,
+        .guests-table-wrap .table td {
+            display: block;
+            width: 100%;
+        }
+
+        .guests-table-wrap .table thead {
+            display: none;
+        }
+
+        .guests-table-wrap .table tr {
+            margin-bottom: 14px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            border-radius: 14px;
+            background: #ffffff;
+            padding: 10px;
+        }
+
+        .guests-table-wrap .table td {
+            border-bottom: 1px dashed rgba(148, 163, 184, 0.35);
+            padding: 10px 6px;
+            color: var(--text-mid);
+        }
+
+        .guests-table-wrap .table td:last-child {
+            border-bottom: none;
+        }
+
+        .guests-table-wrap .table td::before {
+            content: attr(data-label);
+            display: block;
+            margin-bottom: 6px;
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 0.74rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .guests-link-actions,
+        .guests-actions-form {
+            display: grid;
+            gap: 8px;
+        }
+
+        .guests-link-actions .button,
+        .guests-actions-form .button,
+        .guests-actions-form select {
+            width: 100%;
+        }
+
+        .guests-seat-form {
+            min-width: 0;
+        }
+    }
+</style>
+HTML;
 ?>
 <?php include __DIR__ . '/includes/header.php'; ?>
 <div class="dashboard">
@@ -426,87 +545,91 @@ $guests = $guestsStmt->fetchAll();
 
         <div class="card">
             <h3 style="margin-bottom: 12px;">Invites enregistres</h3>
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Nom</th>
-                        <th>Email</th>
-                        <th>Telephone</th>
-                        <th>Evenement</th>
-                        <th>Table</th>
-                        <th>RSVP</th>
-                        <th>Code</th>
-                        <th>Check-in</th>
-                        <th>Lien invite</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($guests)): ?>
+            <div class="guests-table-wrap">
+                <table class="table">
+                    <thead>
                         <tr>
-                            <td colspan="10">Aucun invite enregistre pour le moment.</td>
+                            <th>Nom</th>
+                            <th>Email</th>
+                            <th>Telephone</th>
+                            <th>Evenement</th>
+                            <th>Table</th>
+                            <th>RSVP</th>
+                            <th>Code</th>
+                            <th>Check-in</th>
+                            <th>Lien invite</th>
+                            <th>Action</th>
                         </tr>
-                    <?php else: ?>
-                        <?php foreach ($guests as $guest): ?>
-                            <?php
-                            $guestInvitationPath = $baseUrl . '/guest-invitation?code=' . rawurlencode((string) $guest['guest_code']);
-                            $guestInvitationAbsolute = buildAbsoluteUrl($guestInvitationPath);
-                            $seat = guestSeatFromCustomAnswers((string) ($guest['custom_answers'] ?? ''));
-                            $seatLabel = trim($seat['table_name']) !== '' ? $seat['table_name'] : 'Non affectee';
-                            if (trim($seat['table_number']) !== '') {
-                                $seatLabel .= ' (#' . $seat['table_number'] . ')';
-                            }
-                            ?>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($guests)): ?>
                             <tr>
-                                <td><?= htmlspecialchars((string) ($guest['full_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td><?= htmlspecialchars((string) ($guest['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td><?= htmlspecialchars((string) ($guest['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td><?= htmlspecialchars((string) ($guest['event_title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td>
-                                    <p style="margin-bottom: 8px;"><?= htmlspecialchars($seatLabel, ENT_QUOTES, 'UTF-8'); ?></p>
-                                    <?php if ($guestCustomAnswersEnabled): ?>
-                                        <form method="post" style="display: grid; gap: 6px;">
-                                            <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
-                                            <input type="hidden" name="action" value="assign-table">
-                                            <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
-                                            <input type="text" name="table_name" placeholder="Nom table" value="<?= htmlspecialchars((string) ($seat['table_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                            <input type="text" name="table_number" placeholder="Numero" value="<?= htmlspecialchars((string) ($seat['table_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                            <button class="button ghost" type="submit">Enregistrer table</button>
-                                        </form>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= htmlspecialchars((string) ($guest['rsvp_status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td><?= htmlspecialchars((string) ($guest['guest_code'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
-                                <td><?= (int) ($guest['check_in_count'] ?? 0); ?></td>
-                                <td>
-                                    <a class="button ghost" href="<?= $guestInvitationPath; ?>" target="_blank" rel="noopener">Ouvrir</a>
-                                    <button
-                                        class="button ghost"
-                                        type="button"
-                                        data-copy-link="<?= htmlspecialchars($guestInvitationAbsolute, ENT_QUOTES, 'UTF-8'); ?>"
-                                    >
-                                        Copier
-                                    </button>
-                                </td>
-                                <td>
-                                    <form method="post" style="display: flex; gap: 8px; align-items: center;">
-                                        <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
-                                        <input type="hidden" name="action" value="send-guest-message">
-                                        <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
-                                        <select name="channel" required>
-                                            <option value="email">Email</option>
-                                            <option value="sms">SMS - <?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $smsChannelReady ? '' : ' (config)'; ?></option>
-                                            <option value="whatsapp">WhatsApp - <?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $whatsAppChannelReady ? '' : ' (config)'; ?></option>
-                                            <option value="manual">Manuel</option>
-                                        </select>
-                                        <button class="button primary" type="submit">Envoyer</button>
-                                    </form>
-                                </td>
+                                <td colspan="10">Aucun invite enregistre pour le moment.</td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else: ?>
+                            <?php foreach ($guests as $guest): ?>
+                                <?php
+                                $guestInvitationPath = $baseUrl . '/guest-invitation?code=' . rawurlencode((string) $guest['guest_code']);
+                                $guestInvitationAbsolute = buildAbsoluteUrl($guestInvitationPath);
+                                $seat = guestSeatFromCustomAnswers((string) ($guest['custom_answers'] ?? ''));
+                                $seatLabel = trim($seat['table_name']) !== '' ? $seat['table_name'] : 'Non affectee';
+                                if (trim($seat['table_number']) !== '') {
+                                    $seatLabel .= ' (#' . $seat['table_number'] . ')';
+                                }
+                                ?>
+                                <tr>
+                                    <td data-label="Nom"><?= htmlspecialchars((string) ($guest['full_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td data-label="Email"><?= htmlspecialchars((string) ($guest['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td data-label="Telephone"><?= htmlspecialchars((string) ($guest['phone'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td data-label="Evenement"><?= htmlspecialchars((string) ($guest['event_title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td data-label="Table">
+                                        <p class="guests-seat-label"><?= htmlspecialchars($seatLabel, ENT_QUOTES, 'UTF-8'); ?></p>
+                                        <?php if ($guestCustomAnswersEnabled): ?>
+                                            <form method="post" class="guests-seat-form">
+                                                <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                                                <input type="hidden" name="action" value="assign-table">
+                                                <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
+                                                <input type="text" name="table_name" placeholder="Nom table" value="<?= htmlspecialchars((string) ($seat['table_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                                <input type="text" name="table_number" placeholder="Numero" value="<?= htmlspecialchars((string) ($seat['table_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                                <button class="button ghost" type="submit">Enregistrer table</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td data-label="RSVP"><?= htmlspecialchars((string) ($guest['rsvp_status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td data-label="Code"><?= htmlspecialchars((string) ($guest['guest_code'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td data-label="Check-in"><?= (int) ($guest['check_in_count'] ?? 0); ?></td>
+                                    <td data-label="Lien invite">
+                                        <div class="guests-link-actions">
+                                            <a class="button ghost" href="<?= $guestInvitationPath; ?>" target="_blank" rel="noopener">Ouvrir</a>
+                                            <button
+                                                class="button ghost"
+                                                type="button"
+                                                data-copy-link="<?= htmlspecialchars($guestInvitationAbsolute, ENT_QUOTES, 'UTF-8'); ?>"
+                                            >
+                                                Copier
+                                            </button>
+                                        </div>
+                                    </td>
+                                    <td data-label="Action">
+                                        <form method="post" class="guests-actions-form">
+                                            <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                                            <input type="hidden" name="action" value="send-guest-message">
+                                            <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
+                                            <select name="channel" required>
+                                                <option value="email">Email</option>
+                                                <option value="sms">SMS - <?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $smsChannelReady ? '' : ' (config)'; ?></option>
+                                                <option value="whatsapp">WhatsApp - <?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $whatsAppChannelReady ? '' : ' (config)'; ?></option>
+                                                <option value="manual">Manuel</option>
+                                            </select>
+                                            <button class="button primary" type="submit">Envoyer</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </main>
 </div>
