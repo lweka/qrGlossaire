@@ -1,72 +1,199 @@
 <?php
 require_once __DIR__ . '/includes/auth-check.php';
 require_once __DIR__ . '/app/helpers/credits.php';
+require_once __DIR__ . '/app/helpers/mailer.php';
+require_once __DIR__ . '/app/helpers/messaging.php';
 requireRole('organizer');
 $creditSchemaReady = ensureCreditSystemSchema($pdo);
+$baseUrl = defined('BASE_URL') ? rtrim(BASE_URL, '/') : '';
 
 $dashboardSection = 'guests';
 $userId = (int) ($_SESSION['user_id'] ?? 0);
 $message = null;
 $messageType = 'success';
+$manualSharePreview = null;
 $summary = getUserCreditSummary($pdo, $userId);
 $creditControlEnabled = !empty($summary['credit_controls_enabled']);
+
+$twilioConfigError = null;
+$twilioConfig = getMessagingConfig($twilioConfigError);
+$smsChannelReady = $twilioConfig !== null && trim((string) ($twilioConfig['sms_from'] ?? '')) !== '';
+$whatsAppChannelReady = $twilioConfig !== null && trim((string) ($twilioConfig['whatsapp_from'] ?? '')) !== '';
 
 $eventsStmt = $pdo->prepare('SELECT id, title, event_date FROM events WHERE user_id = :user_id ORDER BY event_date DESC, id DESC');
 $eventsStmt->execute(['user_id' => $userId]);
 $events = $eventsStmt->fetchAll();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add-guest') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Token de securite invalide.';
         $messageType = 'error';
     } else {
-        $eventId = (int) ($_POST['event_id'] ?? 0);
-        $fullName = sanitizeInput($_POST['full_name'] ?? '');
-        $email = sanitizeInput($_POST['email'] ?? '');
-        $phone = sanitizeInput($_POST['phone'] ?? '');
+        $action = sanitizeInput($_POST['action'] ?? '');
 
-        if ($eventId <= 0 || $fullName === '') {
-            $message = 'Renseignez au minimum l evenement et le nom de l invite.';
-            $messageType = 'error';
-        } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $message = 'Adresse email invite invalide.';
-            $messageType = 'error';
-        } else {
-            $ownedEventStmt = $pdo->prepare('SELECT id FROM events WHERE id = :event_id AND user_id = :user_id LIMIT 1');
-            $ownedEventStmt->execute([
-                'event_id' => $eventId,
-                'user_id' => $userId,
-            ]);
-            $ownedEvent = $ownedEventStmt->fetch();
+        if ($action === 'add-guest') {
+            $eventId = (int) ($_POST['event_id'] ?? 0);
+            $fullName = sanitizeInput($_POST['full_name'] ?? '');
+            $email = sanitizeInput($_POST['email'] ?? '');
+            $phone = sanitizeInput($_POST['phone'] ?? '');
 
-            if (!$ownedEvent) {
-                $message = 'Evenement introuvable.';
+            if ($eventId <= 0 || $fullName === '') {
+                $message = 'Renseignez au minimum l evenement et le nom de l invite.';
+                $messageType = 'error';
+            } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $message = 'Adresse email invite invalide.';
                 $messageType = 'error';
             } else {
-                $summary = getUserCreditSummary($pdo, $userId);
-                $creditControlEnabled = !empty($summary['credit_controls_enabled']);
-                if ($creditControlEnabled && $summary['invitation_remaining'] <= 0) {
-                    $message = 'Credits invitations epuises. Demandez une augmentation avant d ajouter un invite.';
+                $ownedEventStmt = $pdo->prepare('SELECT id FROM events WHERE id = :event_id AND user_id = :user_id LIMIT 1');
+                $ownedEventStmt->execute([
+                    'event_id' => $eventId,
+                    'user_id' => $userId,
+                ]);
+                $ownedEvent = $ownedEventStmt->fetch();
+
+                if (!$ownedEvent) {
+                    $message = 'Evenement introuvable.';
                     $messageType = 'error';
                 } else {
-                    $guestCode = 'INV-' . strtoupper(substr(generateSecureToken(8), 0, 10));
+                    $summary = getUserCreditSummary($pdo, $userId);
+                    $creditControlEnabled = !empty($summary['credit_controls_enabled']);
+                    if ($creditControlEnabled && $summary['invitation_remaining'] <= 0) {
+                        $message = 'Credits invitations epuises. Demandez une augmentation avant d ajouter un invite.';
+                        $messageType = 'error';
+                    } else {
+                        $guestCode = 'INV-' . strtoupper(substr(generateSecureToken(8), 0, 10));
 
-                    $insertStmt = $pdo->prepare(
-                        'INSERT INTO guests (event_id, guest_code, full_name, email, phone)
-                         VALUES (:event_id, :guest_code, :full_name, :email, :phone)'
-                    );
-                    $insertStmt->execute([
-                        'event_id' => $eventId,
-                        'guest_code' => $guestCode,
-                        'full_name' => $fullName,
-                        'email' => $email !== '' ? $email : null,
-                        'phone' => $phone !== '' ? $phone : null,
-                    ]);
+                        $insertStmt = $pdo->prepare(
+                            'INSERT INTO guests (event_id, guest_code, full_name, email, phone)
+                             VALUES (:event_id, :guest_code, :full_name, :email, :phone)'
+                        );
+                        $insertStmt->execute([
+                            'event_id' => $eventId,
+                            'guest_code' => $guestCode,
+                            'full_name' => $fullName,
+                            'email' => $email !== '' ? $email : null,
+                            'phone' => $phone !== '' ? $phone : null,
+                        ]);
 
-                    $message = $creditControlEnabled
-                        ? 'Invite ajoute avec succes. 1 credit invitation consomme.'
-                        : 'Invite ajoute avec succes.';
-                    $messageType = 'success';
+                        $message = $creditControlEnabled
+                            ? 'Invite ajoute avec succes. 1 credit invitation consomme.'
+                            : 'Invite ajoute avec succes.';
+                        $messageType = 'success';
+                    }
+                }
+            }
+        } elseif ($action === 'send-guest-message') {
+            $guestId = (int) ($_POST['guest_id'] ?? 0);
+            $channel = sanitizeInput($_POST['channel'] ?? 'email');
+            $validChannels = ['email', 'sms', 'whatsapp', 'manual'];
+
+            if ($guestId <= 0 || !in_array($channel, $validChannels, true)) {
+                $message = 'Parametres d envoi invalides.';
+                $messageType = 'error';
+            } else {
+                $guestStmt = $pdo->prepare(
+                    'SELECT g.id, g.full_name, g.email, g.phone, g.guest_code, e.title, e.event_date, e.location
+                     FROM guests g
+                     INNER JOIN events e ON e.id = g.event_id
+                     WHERE g.id = :guest_id AND e.user_id = :user_id
+                     LIMIT 1'
+                );
+                $guestStmt->execute([
+                    'guest_id' => $guestId,
+                    'user_id' => $userId,
+                ]);
+                $guest = $guestStmt->fetch();
+
+                if (!$guest) {
+                    $message = 'Invite introuvable pour cet utilisateur.';
+                    $messageType = 'error';
+                } else {
+                    $guestInvitationPath = $baseUrl . '/guest-invitation?code=' . rawurlencode((string) $guest['guest_code']);
+                    $guestInvitationLink = buildAbsoluteUrl($guestInvitationPath);
+                    $dispatchError = null;
+                    $providerMessageId = null;
+                    $sent = false;
+
+                    if ($channel === 'email') {
+                        $guestEmail = trim((string) ($guest['email'] ?? ''));
+                        if (!filter_var($guestEmail, FILTER_VALIDATE_EMAIL)) {
+                            $message = 'Adresse email invalide pour cet invite.';
+                            $messageType = 'error';
+                        } else {
+                            $sent = sendGuestInvitationEmail(
+                                $guestEmail,
+                                (string) ($guest['full_name'] ?? ''),
+                                (string) ($guest['title'] ?? ''),
+                                $guestInvitationLink,
+                                (string) ($guest['event_date'] ?? ''),
+                                (string) ($guest['location'] ?? ''),
+                                'Merci de confirmer votre presence via ce lien.',
+                                $dispatchError
+                            );
+                        }
+                    } elseif ($channel === 'sms') {
+                        $guestPhone = trim((string) ($guest['phone'] ?? ''));
+                        if ($guestPhone === '') {
+                            $message = 'Numero telephone manquant pour cet invite.';
+                            $messageType = 'error';
+                        } else {
+                            $sent = sendGuestSmsInvitation(
+                                $guestPhone,
+                                (string) ($guest['full_name'] ?? ''),
+                                (string) ($guest['title'] ?? ''),
+                                $guestInvitationLink,
+                                (string) ($guest['event_date'] ?? ''),
+                                (string) ($guest['location'] ?? ''),
+                                'Merci de confirmer votre presence via ce lien.',
+                                $dispatchError,
+                                $providerMessageId
+                            );
+                        }
+                    } elseif ($channel === 'whatsapp') {
+                        $guestPhone = trim((string) ($guest['phone'] ?? ''));
+                        if ($guestPhone === '') {
+                            $message = 'Numero telephone manquant pour cet invite.';
+                            $messageType = 'error';
+                        } else {
+                            $sent = sendGuestWhatsAppInvitation(
+                                $guestPhone,
+                                (string) ($guest['full_name'] ?? ''),
+                                (string) ($guest['title'] ?? ''),
+                                $guestInvitationLink,
+                                (string) ($guest['event_date'] ?? ''),
+                                (string) ($guest['location'] ?? ''),
+                                'Merci de confirmer votre presence via ce lien.',
+                                $dispatchError,
+                                $providerMessageId
+                            );
+                        }
+                    } else {
+                        $manualSharePreview = buildGuestManualShareText(
+                            (string) ($guest['full_name'] ?? ''),
+                            (string) ($guest['title'] ?? ''),
+                            $guestInvitationLink,
+                            (string) ($guest['event_date'] ?? ''),
+                            (string) ($guest['location'] ?? ''),
+                            'Merci de confirmer votre presence via ce lien.'
+                        );
+                        $sent = true;
+                    }
+
+                    if ($sent) {
+                        $message = $channel === 'manual'
+                            ? 'Message manuel genere. Copiez et partagez le texte ci-dessous.'
+                            : strtoupper($channel) . ' envoye avec succes.';
+                        if ($providerMessageId) {
+                            $message .= ' Ref: ' . $providerMessageId;
+                        }
+                        $messageType = 'success';
+                    } elseif ($messageType !== 'error') {
+                        $message = 'Echec envoi ' . strtoupper($channel) . '.';
+                        if ($dispatchError) {
+                            $message .= ' Detail: ' . $dispatchError;
+                        }
+                        $messageType = 'error';
+                    }
                 }
             }
         }
@@ -80,7 +207,7 @@ $summary = getUserCreditSummary($pdo, $userId);
 $creditControlEnabled = !empty($summary['credit_controls_enabled']);
 
 $guestsStmt = $pdo->prepare(
-    'SELECT g.id, g.full_name, g.email, g.phone, g.rsvp_status, g.guest_code, e.title AS event_title
+    'SELECT g.id, g.event_id, g.full_name, g.email, g.phone, g.rsvp_status, g.guest_code, g.check_in_count, e.title AS event_title
      FROM guests g
      INNER JOIN events e ON e.id = g.event_id
      WHERE e.user_id = :user_id
@@ -114,10 +241,37 @@ $guests = $guestsStmt->fetchAll();
             <?php endif; ?>
         </div>
 
+        <?php if (!$smsChannelReady || !$whatsAppChannelReady): ?>
+            <div class="card" style="margin-bottom: 18px;">
+                <p style="color: #92400e; margin-bottom: 6px;">Canaux SMS/WhatsApp non totalement configures.</p>
+                <p style="color: var(--text-mid); margin: 0;">
+                    Variables requises: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_SMS_FROM, TWILIO_WHATSAPP_FROM.
+                </p>
+                <?php if ($twilioConfigError): ?>
+                    <p style="color: var(--text-mid); margin: 6px 0 0 0;"><?= htmlspecialchars($twilioConfigError, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+
         <?php if ($message): ?>
             <div class="card" style="margin-bottom: 18px;">
-                <?php $color = $messageType === 'error' ? '#dc2626' : '#166534'; ?>
-                <p style="color: <?= $color; ?>;"><?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p>
+                <?php
+                $color = '#166534';
+                if ($messageType === 'error') {
+                    $color = '#dc2626';
+                } elseif ($messageType === 'warning') {
+                    $color = '#92400e';
+                }
+                ?>
+                <p style="color: <?= $color; ?>;"><?= htmlspecialchars((string) $message, ENT_QUOTES, 'UTF-8'); ?></p>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($manualSharePreview !== null): ?>
+            <div class="card" style="margin-bottom: 18px;">
+                <h3 style="margin-bottom: 10px;">Message manuel</h3>
+                <textarea id="manual_share_preview" rows="6" readonly style="width: 100%;"><?= htmlspecialchars($manualSharePreview, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                <button type="button" class="button ghost" style="margin-top: 10px;" data-copy-manual-preview="#manual_share_preview">Copier le message</button>
             </div>
         <?php endif; ?>
 
@@ -172,17 +326,24 @@ $guests = $guestsStmt->fetchAll();
                         <th>Email</th>
                         <th>Telephone</th>
                         <th>Evenement</th>
-                        <th>Statut RSVP</th>
+                        <th>RSVP</th>
                         <th>Code</th>
+                        <th>Check-in</th>
+                        <th>Lien invite</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($guests)): ?>
                         <tr>
-                            <td colspan="6">Aucun invite enregistre pour le moment.</td>
+                            <td colspan="9">Aucun invite enregistre pour le moment.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($guests as $guest): ?>
+                            <?php
+                            $guestInvitationPath = $baseUrl . '/guest-invitation?code=' . rawurlencode((string) $guest['guest_code']);
+                            $guestInvitationAbsolute = buildAbsoluteUrl($guestInvitationPath);
+                            ?>
                             <tr>
                                 <td><?= htmlspecialchars((string) ($guest['full_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?= htmlspecialchars((string) ($guest['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -190,6 +351,31 @@ $guests = $guestsStmt->fetchAll();
                                 <td><?= htmlspecialchars((string) ($guest['event_title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?= htmlspecialchars((string) ($guest['rsvp_status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
                                 <td><?= htmlspecialchars((string) ($guest['guest_code'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?= (int) ($guest['check_in_count'] ?? 0); ?></td>
+                                <td>
+                                    <a class="button ghost" href="<?= $guestInvitationPath; ?>" target="_blank" rel="noopener">Ouvrir</a>
+                                    <button
+                                        class="button ghost"
+                                        type="button"
+                                        data-copy-link="<?= htmlspecialchars($guestInvitationAbsolute, ENT_QUOTES, 'UTF-8'); ?>"
+                                    >
+                                        Copier
+                                    </button>
+                                </td>
+                                <td>
+                                    <form method="post" style="display: flex; gap: 8px; align-items: center;">
+                                        <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                                        <input type="hidden" name="action" value="send-guest-message">
+                                        <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
+                                        <select name="channel" required>
+                                            <option value="email">Email</option>
+                                            <option value="sms">SMS<?= $smsChannelReady ? '' : ' (config)'; ?></option>
+                                            <option value="whatsapp">WhatsApp<?= $whatsAppChannelReady ? '' : ' (config)'; ?></option>
+                                            <option value="manual">Manuel</option>
+                                        </select>
+                                        <button class="button primary" type="submit">Envoyer</button>
+                                    </form>
+                                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -198,4 +384,50 @@ $guests = $guestsStmt->fetchAll();
         </div>
     </main>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const copyButtons = document.querySelectorAll("[data-copy-link]");
+    copyButtons.forEach(function (button) {
+        button.addEventListener("click", async function () {
+            const link = button.getAttribute("data-copy-link") || "";
+            if (!link) {
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(link);
+                button.textContent = "Copie";
+                setTimeout(function () {
+                    button.textContent = "Copier";
+                }, 1200);
+            } catch (error) {
+                window.prompt("Copiez ce lien:", link);
+            }
+        });
+    });
+
+    const manualCopyButton = document.querySelector("[data-copy-manual-preview]");
+    if (manualCopyButton) {
+        manualCopyButton.addEventListener("click", async function () {
+            const selector = manualCopyButton.getAttribute("data-copy-manual-preview");
+            const source = selector ? document.querySelector(selector) : null;
+            const text = source ? source.value : "";
+            if (!text) {
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                const original = manualCopyButton.textContent;
+                manualCopyButton.textContent = "Copie";
+                setTimeout(function () {
+                    manualCopyButton.textContent = original;
+                }, 1200);
+            } catch (error) {
+                window.prompt("Copiez ce message:", text);
+            }
+        });
+    }
+});
+</script>
 <?php include __DIR__ . '/includes/footer.php'; ?>

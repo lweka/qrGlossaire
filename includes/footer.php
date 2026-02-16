@@ -1,6 +1,6 @@
     <footer class="footer">
         <div class="container">
-            <p>© 2026 Cartelplus Congo. Plateforme d'invitations numériques professionnelles.</p>
+            <p>&copy; 2026 Cartelplus Congo. Plateforme d'invitations numeriques professionnelles.</p>
         </div>
     </footer>
     <?php
