@@ -22,8 +22,6 @@ $smsChannelReady = !empty($messagingStatus['sms']['ready']);
 $whatsAppChannelReady = !empty($messagingStatus['whatsapp']['ready']);
 $smsProviderLabel = (string) ($messagingStatus['sms']['provider_label'] ?? 'SMS');
 $whatsAppProviderLabel = (string) ($messagingStatus['whatsapp']['provider_label'] ?? 'WhatsApp');
-$smsChannelError = (string) ($messagingStatus['sms']['error'] ?? '');
-$whatsAppChannelError = (string) ($messagingStatus['whatsapp']['error'] ?? '');
 
 $eventsStmt = $pdo->prepare('SELECT id, title, event_date FROM events WHERE user_id = :user_id ORDER BY event_date DESC, id DESC');
 $eventsStmt->execute(['user_id' => $userId]);
@@ -83,81 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = sanitizeInput($_POST['action'] ?? '');
 
         if ($action === 'add-guest') {
-            $eventId = (int) ($_POST['event_id'] ?? 0);
-            $fullName = sanitizeInput($_POST['full_name'] ?? '');
-            $email = sanitizeInput($_POST['email'] ?? '');
-            $phone = sanitizeInput($_POST['phone'] ?? '');
-            $tableName = sanitizeInput($_POST['table_name'] ?? '');
-            $tableNumber = sanitizeInput($_POST['table_number'] ?? '');
-
-            if ($eventId <= 0 || $fullName === '') {
-                $message = 'Renseignez au minimum l evenement et le nom de l invite.';
-                $messageType = 'error';
-            } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $message = 'Adresse email invite invalide.';
-                $messageType = 'error';
-            } else {
-                $ownedEventStmt = $pdo->prepare('SELECT id FROM events WHERE id = :event_id AND user_id = :user_id LIMIT 1');
-                $ownedEventStmt->execute([
-                    'event_id' => $eventId,
-                    'user_id' => $userId,
-                ]);
-                $ownedEvent = $ownedEventStmt->fetch();
-
-                if (!$ownedEvent) {
-                    $message = 'Evenement introuvable.';
-                    $messageType = 'error';
-                } else {
-                    $summary = getUserCreditSummary($pdo, $userId);
-                    $creditControlEnabled = !empty($summary['credit_controls_enabled']);
-                    if ($creditControlEnabled && $summary['invitation_remaining'] <= 0) {
-                        $message = 'Credits invitations epuises. Demandez une augmentation avant d ajouter un invite.';
-                        $messageType = 'error';
-                    } else {
-                        $guestCode = 'INV-' . strtoupper(substr(generateSecureToken(8), 0, 10));
-                        $customAnswers = null;
-                        if ($guestCustomAnswersEnabled) {
-                            $seatPayload = [
-                                'table_name' => $tableName,
-                                'table_number' => $tableNumber,
-                            ];
-                            $customAnswers = json_encode($seatPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-                        }
-
-                        if ($guestCustomAnswersEnabled) {
-                            $insertStmt = $pdo->prepare(
-                                'INSERT INTO guests (event_id, guest_code, full_name, email, phone, custom_answers)
-                                 VALUES (:event_id, :guest_code, :full_name, :email, :phone, :custom_answers)'
-                            );
-                            $insertStmt->execute([
-                                'event_id' => $eventId,
-                                'guest_code' => $guestCode,
-                                'full_name' => $fullName,
-                                'email' => $email !== '' ? $email : null,
-                                'phone' => $phone !== '' ? $phone : null,
-                                'custom_answers' => $customAnswers,
-                            ]);
-                        } else {
-                            $insertStmt = $pdo->prepare(
-                                'INSERT INTO guests (event_id, guest_code, full_name, email, phone)
-                                 VALUES (:event_id, :guest_code, :full_name, :email, :phone)'
-                            );
-                            $insertStmt->execute([
-                                'event_id' => $eventId,
-                                'guest_code' => $guestCode,
-                                'full_name' => $fullName,
-                                'email' => $email !== '' ? $email : null,
-                                'phone' => $phone !== '' ? $phone : null,
-                            ]);
-                        }
-
-                        $message = $creditControlEnabled
-                            ? 'Invite ajoute avec succes. 1 credit invitation consomme.'
-                            : 'Invite ajoute avec succes.';
-                        $messageType = 'success';
-                    }
-                }
-            }
+            $message = 'Ajout manuel des invites desactive. Utilisez le lien d inscription autonome.';
+            $messageType = 'warning';
         } elseif ($action === 'assign-table') {
             $guestId = (int) ($_POST['guest_id'] ?? 0);
             $tableName = sanitizeInput($_POST['table_name'] ?? '');
@@ -624,7 +549,7 @@ HTML;
         <div class="card" style="margin-bottom: 18px;">
             <?php if ($creditControlEnabled): ?>
                 <p><strong>Credits invitations restants:</strong> <?= $summary['invitation_remaining']; ?> / <?= $summary['invitation_total']; ?></p>
-                <p style="margin-top: 6px; color: var(--text-mid);">Chaque invite ajoute consomme 1 credit invitation.</p>
+                <p style="margin-top: 6px; color: var(--text-mid);">Chaque inscription invite via lien consomme 1 credit invitation.</p>
             <?php else: ?>
                 <p><strong>Credits invitations:</strong> mode libre temporaire (module credits non initialise).</p>
             <?php endif; ?>
@@ -632,21 +557,6 @@ HTML;
                 <p style="margin-top: 6px; color: #92400e;">Le module credits est en initialisation sur ce serveur.</p>
             <?php endif; ?>
         </div>
-
-        <?php if (!$smsChannelReady || !$whatsAppChannelReady): ?>
-            <div class="card" style="margin-bottom: 18px;">
-                <p style="color: #92400e; margin-bottom: 6px;">Canaux SMS/WhatsApp non totalement configures.</p>
-                <p style="color: var(--text-mid); margin: 0;">
-                    Cela ne bloque pas la connexion ni l envoi Email/Manuel.
-                </p>
-                <?php if (!$smsChannelReady && $smsChannelError !== ''): ?>
-                    <p style="color: var(--text-mid); margin: 6px 0 0 0;">SMS (<?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?>): <?= htmlspecialchars($smsChannelError, ENT_QUOTES, 'UTF-8'); ?></p>
-                <?php endif; ?>
-                <?php if (!$whatsAppChannelReady && $whatsAppChannelError !== ''): ?>
-                    <p style="color: var(--text-mid); margin: 6px 0 0 0;">WhatsApp (<?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?>): <?= htmlspecialchars($whatsAppChannelError, ENT_QUOTES, 'UTF-8'); ?></p>
-                <?php endif; ?>
-            </div>
-        <?php endif; ?>
 
         <?php if ($message): ?>
             <div class="card" style="margin-bottom: 18px;">
@@ -727,56 +637,6 @@ HTML;
             <?php endif; ?>
         </div>
 
-        <div class="card" style="margin-bottom: 22px;">
-            <h3 style="margin-bottom: 12px;">Ajouter un invite</h3>
-            <?php if ($creditControlEnabled && $summary['invitation_remaining'] <= 0): ?>
-                <p style="color: #92400e; margin-bottom: 10px;">
-                    Credits invitations epuises. Demandez une augmentation avant d ajouter de nouveaux invites.
-                </p>
-                <a class="button primary" href="<?= $baseUrl; ?>/dashboard">Demander une augmentation</a>
-            <?php elseif (empty($events)): ?>
-                <p style="color: var(--text-mid);">Vous devez d abord creer un evenement avant d ajouter des invites.</p>
-            <?php else: ?>
-                <form method="post">
-                    <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
-                    <input type="hidden" name="action" value="add-guest">
-                    <div class="form-group">
-                        <label for="event_id">Evenement</label>
-                        <select id="event_id" name="event_id" required>
-                            <option value="">Selectionner</option>
-                            <?php foreach ($events as $event): ?>
-                                <option value="<?= (int) $event['id']; ?>">
-                                    <?= htmlspecialchars((string) ($event['title'] ?? 'Evenement'), ENT_QUOTES, 'UTF-8'); ?>
-                                    - <?= htmlspecialchars((string) ($event['event_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="full_name">Nom invite</label>
-                        <input id="full_name" name="full_name" type="text" placeholder="Ex: Jean Mavoungou" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="email">Email invite</label>
-                        <input id="email" name="email" type="email" placeholder="invite@email.com">
-                    </div>
-                    <div class="form-group">
-                        <label for="phone">Telephone invite</label>
-                        <input id="phone" name="phone" type="text" placeholder="+242 06 000 0000">
-                    </div>
-                    <div class="form-group">
-                        <label for="table_name">Nom de la table (optionnel)</label>
-                        <input id="table_name" name="table_name" type="text" placeholder="Ex: Famille mariee">
-                    </div>
-                    <div class="form-group">
-                        <label for="table_number">Numero de la table (optionnel)</label>
-                        <input id="table_number" name="table_number" type="text" placeholder="Ex: 12">
-                    </div>
-                    <button class="button primary" type="submit">Ajouter l invite</button>
-                </form>
-            <?php endif; ?>
-        </div>
-
         <div class="card guests-register-card">
             <h3 style="margin-bottom: 12px;">Invites enregistres</h3>
             <div class="guest-list-grid">
@@ -853,8 +713,12 @@ HTML;
                                             <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
                                             <select name="channel" required>
                                                 <option value="email">Email</option>
-                                                <option value="sms">SMS - <?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $smsChannelReady ? '' : ' (config)'; ?></option>
-                                                <option value="whatsapp">WhatsApp - <?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $whatsAppChannelReady ? '' : ' (config)'; ?></option>
+                                                <?php if ($smsChannelReady): ?>
+                                                    <option value="sms">SMS - <?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                                                <?php endif; ?>
+                                                <?php if ($whatsAppChannelReady): ?>
+                                                    <option value="whatsapp">WhatsApp - <?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?></option>
+                                                <?php endif; ?>
                                                 <option value="manual">Manuel</option>
                                             </select>
                                             <button class="button primary" type="submit">Envoyer</button>

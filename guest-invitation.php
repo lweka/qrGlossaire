@@ -184,7 +184,8 @@ if ($code !== '') {
     $guest = findGuestByCode($pdo, $code, $guestCustomAnswersEnabled);
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+if ($requestMethod === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
         $message = 'Token de securite invalide.';
         $messageType = 'error';
@@ -198,6 +199,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!in_array($status, ['confirmed', 'declined'], true)) {
                 $message = 'Reponse invalide.';
                 $messageType = 'error';
+            } elseif ((string) ($guest['rsvp_status'] ?? 'pending') !== 'pending') {
+                $message = 'Votre reponse a deja ete enregistree.';
+                $messageType = 'warning';
             } else {
                 $updateStmt = $pdo->prepare('UPDATE guests SET rsvp_status = :rsvp_status WHERE id = :id');
                 $updateStmt->execute([
@@ -357,21 +361,35 @@ HTML;
                 <p><strong>Statut RSVP:</strong> <?= htmlspecialchars($displayRsvp, ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
 
-            <div class="card" style="margin-bottom: 18px;">
-                <h3 style="margin-bottom: 12px;">Confirmer votre reponse</h3>
-                <form method="post" style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
-                    <input type="hidden" name="action" value="rsvp">
-                    <input type="hidden" name="status" value="confirmed">
-                    <button class="button primary" type="submit">Je confirme ma presence</button>
-                </form>
-                <form method="post" style="margin-top: 10px;">
-                    <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
-                    <input type="hidden" name="action" value="rsvp">
-                    <input type="hidden" name="status" value="declined">
-                    <button class="button ghost" type="submit">Je ne pourrai pas venir</button>
-                </form>
-            </div>
+            <?php if (($guest['rsvp_status'] ?? 'pending') === 'pending'): ?>
+                <div class="card" style="margin-bottom: 18px;">
+                    <h3 style="margin-bottom: 12px;">Confirmer votre reponse</h3>
+                    <form method="post" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                        <input type="hidden" name="action" value="rsvp">
+                        <input type="hidden" name="status" value="confirmed">
+                        <button class="button primary" type="submit">Je confirme ma presence</button>
+                    </form>
+                    <form method="post" style="margin-top: 10px;">
+                        <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                        <input type="hidden" name="action" value="rsvp">
+                        <input type="hidden" name="status" value="declined">
+                        <button class="button ghost" type="submit">Je ne pourrai pas venir</button>
+                    </form>
+                </div>
+            <?php elseif (($guest['rsvp_status'] ?? 'pending') === 'confirmed'): ?>
+                <div class="card" style="margin-bottom: 18px;">
+                    <p style="color: #166534; margin: 0;">
+                        Votre presence est deja confirmee. Votre QR code d acces est actif ci-dessous.
+                    </p>
+                </div>
+            <?php else: ?>
+                <div class="card" style="margin-bottom: 18px;">
+                    <p style="color: #92400e; margin: 0;">
+                        Votre reponse est deja enregistree. Si vous devez modifier ce statut, contactez l organisateur.
+                    </p>
+                </div>
+            <?php endif; ?>
 
             <?php if (($guest['rsvp_status'] ?? 'pending') === 'confirmed'): ?>
                 <div class="card">

@@ -1,6 +1,10 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # SEO endpoints.
+    RewriteRule ^robots\.txt$ robots.php [L,QSA,NC]
+    RewriteRule ^sitemap\.xml$ sitemap.php [L,QSA,NC]
+
     # Canonical URL: redirect direct .php requests to extensionless paths.
     RewriteCond %{REQUEST_URI} ^(.+)\.php$ [NC]
     RewriteCond %{THE_REQUEST} \s/+.+\.php(?:[?\s]|$) [NC]

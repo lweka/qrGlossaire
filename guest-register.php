@@ -13,17 +13,24 @@ $token = normalizeGuestRegistrationToken((string) ($_GET['token'] ?? ($_POST['to
 $event = null;
 $message = null;
 $messageType = 'success';
-$createdGuestCode = '';
+$createdGuestCode = strtoupper(trim((string) ($_GET['created'] ?? '')));
+$createdGuestCode = preg_replace('/[^A-Z0-9\-]/', '', $createdGuestCode ?? '');
+if (!is_string($createdGuestCode)) {
+    $createdGuestCode = '';
+}
 $createdInvitationPath = '';
 $createdInvitationAbsolute = '';
-$createdQrImageUrl = '';
-$createdCheckinAbsolute = '';
 $creditControlEnabled = false;
 $invitationRemaining = null;
 
 $formFullName = '';
 $formEmail = '';
 $formPhone = '';
+
+if ($createdGuestCode !== '') {
+    $createdInvitationPath = $baseUrl . '/guest-invitation?code=' . rawurlencode($createdGuestCode);
+    $createdInvitationAbsolute = buildAbsoluteUrl($createdInvitationPath);
+}
 
 $refreshEventAndCredits = static function () use ($pdo, $token, $guestRegistrationSchemaReady, &$event, &$creditControlEnabled, &$invitationRemaining): void {
     $event = null;
@@ -48,7 +55,8 @@ $refreshEventAndCredits = static function () use ($pdo, $token, $guestRegistrati
 
 $refreshEventAndCredits();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+$requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+if ($requestMethod === 'POST') {
     $formFullName = sanitizeInput($_POST['full_name'] ?? '');
     $formEmail = sanitizeInput($_POST['email'] ?? '');
     $formPhone = sanitizeInput($_POST['phone'] ?? '');
@@ -74,23 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!empty($creation['ok'])) {
             $createdGuestCode = (string) ($creation['guest_code'] ?? '');
-            $createdInvitationPath = $baseUrl . '/guest-invitation?code=' . rawurlencode($createdGuestCode);
-            $createdInvitationAbsolute = buildAbsoluteUrl($createdInvitationPath);
-
-            $checkinPath = $baseUrl . '/guest-checkin?code=' . rawurlencode($createdGuestCode) . '&scan=1';
-            $createdCheckinAbsolute = buildAbsoluteUrl($checkinPath);
-            $createdQrImageUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . rawurlencode($createdCheckinAbsolute);
-
-            $message = 'Inscription enregistree avec succes.';
-            if (!empty($creation['credit_control_enabled'])) {
-                $remainingAfter = max(0, (int) ($creation['invitation_remaining_after'] ?? 0));
-                $message .= ' Credits invitations restants pour ce lien: ' . $remainingAfter . '.';
-            }
-            $messageType = 'success';
-
-            $formFullName = '';
-            $formEmail = '';
-            $formPhone = '';
+            $redirectPath = $baseUrl . '/guest-register?token=' . rawurlencode($token) . '&created=' . rawurlencode($createdGuestCode);
+            header('Location: ' . $redirectPath);
+            exit;
         } else {
             $message = (string) ($creation['message'] ?? 'Impossible de creer l invitation.');
             $messageType = stripos($message, 'Limite atteinte') !== false ? 'warning' : 'error';
@@ -104,6 +98,14 @@ $eventIsOpen = $event
     && (int) ($event['is_active'] ?? 0) === 1
     && (int) ($event['public_registration_enabled'] ?? 0) === 1;
 $creditsAvailable = !$creditControlEnabled || (int) ($invitationRemaining ?? 0) > 0;
+
+if ($requestMethod !== 'POST' && $createdGuestCode !== '' && $message === null) {
+    $message = 'Inscription enregistree avec succes.';
+    if ($creditControlEnabled) {
+        $message .= ' Credits invitations restants pour ce lien: ' . max(0, (int) ($invitationRemaining ?? 0)) . '.';
+    }
+    $messageType = 'success';
+}
 
 $pageHeadExtra = <<<'HTML'
 <style>
@@ -215,16 +217,9 @@ HTML;
                         <a class="button primary" href="<?= htmlspecialchars($createdInvitationPath, ENT_QUOTES, 'UTF-8'); ?>">Ouvrir mon invitation</a>
                         <a class="button ghost" href="<?= htmlspecialchars($createdInvitationPath, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet</a>
                     </div>
-                    <?php if ($createdQrImageUrl !== '' && $createdCheckinAbsolute !== ''): ?>
-                        <div class="qr-box" style="margin-top: 14px;">
-                            <img src="<?= htmlspecialchars($createdQrImageUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="QR code de reference">
-                            <p class="public-register-meta" style="text-align: center;">
-                                Ce QR code reference votre lien de validation:
-                                <br>
-                                <?= htmlspecialchars($createdCheckinAbsolute, ENT_QUOTES, 'UTF-8'); ?>
-                            </p>
-                        </div>
-                    <?php endif; ?>
+                    <p class="public-register-meta" style="margin-top: 12px;">
+                        Le QR code d acces sera actif apres confirmation de presence sur votre invitation.
+                    </p>
                 </div>
             <?php endif; ?>
 
@@ -236,6 +231,12 @@ HTML;
                 <div class="card">
                     <p style="color: #92400e;">
                         Vous ne pouvez plus creer d invitation avec ce lien: le quota de credits invitations est atteint.
+                    </p>
+                </div>
+            <?php elseif ($createdGuestCode !== ''): ?>
+                <div class="card">
+                    <p style="color: var(--text-mid);">
+                        Votre inscription est deja enregistree. Ouvrez votre invitation pour confirmer votre presence.
                     </p>
                 </div>
             <?php else: ?>
