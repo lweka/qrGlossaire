@@ -315,38 +315,49 @@ $guests = $guestsStmt->fetchAll();
 
 $pageHeadExtra = <<<'HTML'
 <style>
+    .guests-register-card {
+        max-width: 1080px;
+        margin: 0 auto;
+    }
+
+    .guests-register-card > h3 {
+        font-size: 1.1rem;
+        margin-bottom: 10px !important;
+    }
+
     .guest-list-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 10px;
     }
 
     .guest-item-card {
         border: 1px solid rgba(148, 163, 184, 0.35);
-        border-radius: 14px;
+        border-radius: 12px;
         background: #ffffff;
-        padding: 14px;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        padding: 10px;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
     }
 
     .guest-item-top {
         display: flex;
         justify-content: space-between;
-        gap: 12px;
+        gap: 8px;
         align-items: flex-start;
     }
 
     .guest-item-name {
         margin: 0;
         color: var(--text-dark);
-        font-size: 1.02rem;
+        font-size: 0.94rem;
+        line-height: 1.25;
         word-break: break-word;
     }
 
     .guest-item-code {
-        margin: 4px 0 0 0;
+        margin: 3px 0 0 0;
         color: var(--text-light);
-        font-size: 0.84rem;
+        font-size: 0.76rem;
         word-break: break-word;
     }
 
@@ -354,8 +365,8 @@ $pageHeadExtra = <<<'HTML'
         display: inline-flex;
         align-items: center;
         border-radius: 999px;
-        padding: 5px 10px;
-        font-size: 0.74rem;
+        padding: 4px 8px;
+        font-size: 0.66rem;
         font-weight: 700;
         letter-spacing: 0.04em;
         text-transform: uppercase;
@@ -383,14 +394,15 @@ $pageHeadExtra = <<<'HTML'
     .guest-info-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 8px 12px;
-        margin-top: 12px;
+        gap: 6px 10px;
+        margin-top: 8px;
     }
 
     .guest-info-grid p {
         margin: 0;
         color: var(--text-mid);
-        line-height: 1.45;
+        line-height: 1.35;
+        font-size: 0.83rem;
         word-break: break-word;
     }
 
@@ -399,39 +411,88 @@ $pageHeadExtra = <<<'HTML'
     }
 
     .guest-section {
-        margin-top: 12px;
-        padding-top: 12px;
+        margin-top: 8px;
+        padding-top: 8px;
         border-top: 1px dashed rgba(148, 163, 184, 0.45);
     }
 
     .guests-link-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 6px;
     }
 
     .guests-seat-label {
-        margin: 0 0 8px 0;
+        margin: 0 0 6px 0;
         font-weight: 600;
         color: var(--text-dark);
+        font-size: 0.82rem;
     }
 
     .guests-seat-form {
         display: grid;
-        gap: 6px;
-        min-width: 190px;
+        gap: 5px;
+        min-width: 0;
     }
 
     .guests-actions-form {
         display: flex;
-        gap: 8px;
+        gap: 6px;
         align-items: center;
         flex-wrap: wrap;
     }
 
     .guests-actions-form select {
-        min-width: 170px;
+        min-width: 150px;
         flex: 1;
+    }
+
+    .guest-item-card .button {
+        padding: 7px 11px;
+        font-size: 0.78rem;
+    }
+
+    .guest-item-card input,
+    .guest-item-card select {
+        padding: 8px 10px;
+        font-size: 0.82rem;
+        border-radius: 10px;
+    }
+
+    .guest-advanced {
+        margin-top: 6px;
+    }
+
+    .guest-advanced summary {
+        cursor: pointer;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-mid);
+        list-style: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        user-select: none;
+    }
+
+    .guest-advanced summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .guest-advanced summary::before {
+        content: "+";
+        font-weight: 700;
+        color: var(--brand-blue);
+    }
+
+    .guest-advanced[open] summary::before {
+        content: "-";
+    }
+
+    .guest-advanced-content {
+        margin-top: 8px;
+        display: grid;
+        gap: 8px;
     }
 
     @media (max-width: 768px) {
@@ -440,7 +501,7 @@ $pageHeadExtra = <<<'HTML'
         }
 
         .guest-item-card {
-            padding: 12px;
+            padding: 9px;
         }
 
         .guest-item-top {
@@ -461,7 +522,9 @@ $pageHeadExtra = <<<'HTML'
         .guests-link-actions .button,
         .guests-actions-form .button,
         .guests-actions-form select,
-        .guests-seat-form .button {
+        .guests-seat-form .button,
+        .guest-item-card input,
+        .guest-item-card select {
             width: 100%;
         }
 
@@ -583,7 +646,7 @@ HTML;
             <?php endif; ?>
         </div>
 
-        <div class="card">
+        <div class="card guests-register-card">
             <h3 style="margin-bottom: 12px;">Invites enregistres</h3>
             <div class="guest-list-grid">
                 <?php if (empty($guests)): ?>
@@ -635,33 +698,38 @@ HTML;
                                 </div>
                             </div>
 
-                            <?php if ($guestCustomAnswersEnabled): ?>
-                                <div class="guest-section">
-                                    <p class="guests-seat-label">Affectation de table</p>
-                                    <form method="post" class="guests-seat-form">
-                                        <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
-                                        <input type="hidden" name="action" value="assign-table">
-                                        <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
-                                        <input type="text" name="table_name" placeholder="Nom table" value="<?= htmlspecialchars((string) ($seat['table_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        <input type="text" name="table_number" placeholder="Numero" value="<?= htmlspecialchars((string) ($seat['table_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
-                                        <button class="button ghost" type="submit">Enregistrer table</button>
-                                    </form>
-                                </div>
-                            <?php endif; ?>
-
                             <div class="guest-section">
-                                <form method="post" class="guests-actions-form">
-                                    <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
-                                    <input type="hidden" name="action" value="send-guest-message">
-                                    <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
-                                    <select name="channel" required>
-                                        <option value="email">Email</option>
-                                        <option value="sms">SMS - <?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $smsChannelReady ? '' : ' (config)'; ?></option>
-                                        <option value="whatsapp">WhatsApp - <?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $whatsAppChannelReady ? '' : ' (config)'; ?></option>
-                                        <option value="manual">Manuel</option>
-                                    </select>
-                                    <button class="button primary" type="submit">Envoyer</button>
-                                </form>
+                                <details class="guest-advanced">
+                                    <summary>Actions avancees</summary>
+                                    <div class="guest-advanced-content">
+                                        <?php if ($guestCustomAnswersEnabled): ?>
+                                            <div>
+                                                <p class="guests-seat-label">Affectation de table</p>
+                                                <form method="post" class="guests-seat-form">
+                                                    <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                                                    <input type="hidden" name="action" value="assign-table">
+                                                    <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
+                                                    <input type="text" name="table_name" placeholder="Nom table" value="<?= htmlspecialchars((string) ($seat['table_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <input type="text" name="table_number" placeholder="Numero" value="<?= htmlspecialchars((string) ($seat['table_number'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                                                    <button class="button ghost" type="submit">Enregistrer table</button>
+                                                </form>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <form method="post" class="guests-actions-form">
+                                            <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
+                                            <input type="hidden" name="action" value="send-guest-message">
+                                            <input type="hidden" name="guest_id" value="<?= (int) $guest['id']; ?>">
+                                            <select name="channel" required>
+                                                <option value="email">Email</option>
+                                                <option value="sms">SMS - <?= htmlspecialchars($smsProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $smsChannelReady ? '' : ' (config)'; ?></option>
+                                                <option value="whatsapp">WhatsApp - <?= htmlspecialchars($whatsAppProviderLabel, ENT_QUOTES, 'UTF-8'); ?><?= $whatsAppChannelReady ? '' : ' (config)'; ?></option>
+                                                <option value="manual">Manuel</option>
+                                            </select>
+                                            <button class="button primary" type="submit">Envoyer</button>
+                                        </form>
+                                    </div>
+                                </details>
                             </div>
                         </article>
                     <?php endforeach; ?>
