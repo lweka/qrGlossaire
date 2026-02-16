@@ -66,7 +66,7 @@ sort($sliderImages, SORT_NATURAL | SORT_FLAG_CASE);
                 <span class="hero-text-dynamic is-visible" data-text-current aria-live="polite">Des invitations numeriques elegantes avec validation QR Code</span>
             </h1>
             <p class="fade-up delay-1">Créez des expériences mémorables pour vos cérémonies. Personnalisez vos invitations, automatisez les confirmations et scannez les QR codes à l'entrée en quelques secondes.</p>
-            <div class="fade-up delay-2">
+            <div class="hero-actions fade-up delay-2">
                 <a class="button primary" href="<?= $baseUrl; ?>/register">Démarrer maintenant</a>
                 <a class="button ghost" href="<?= $baseUrl; ?>/invitation">Voir une invitation</a>
             </div>
