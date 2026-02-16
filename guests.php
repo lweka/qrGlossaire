@@ -75,13 +75,13 @@ function guestSeatFromCustomAnswers(?string $rawJson): array
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Token de securite invalide.';
+        $message = 'Token de sécurité invalide.';
         $messageType = 'error';
     } else {
         $action = sanitizeInput($_POST['action'] ?? '');
 
         if ($action === 'add-guest') {
-            $message = 'Ajout manuel des invites desactive. Utilisez le lien d inscription autonome.';
+            $message = "Ajout manuel des invités désactivé. Utilisez le lien d'inscription autonome.";
             $messageType = 'warning';
         } elseif ($action === 'assign-table') {
             $guestId = (int) ($_POST['guest_id'] ?? 0);
@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         'id' => $guestId,
                     ]);
 
-                    $message = 'Table de l invite mise a jour.';
+                    $message = "Table de l'invité mise à jour.";
                     $messageType = 'success';
                 }
             }
@@ -133,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $validChannels = ['email', 'sms', 'whatsapp', 'manual'];
 
             if ($guestId <= 0 || !in_array($channel, $validChannels, true)) {
-                $message = 'Parametres d envoi invalides.';
+                $message = "Paramètres d'envoi invalides.";
                 $messageType = 'error';
             } else {
                 $guestStmt = $pdo->prepare(
@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if ($channel === 'email') {
                         $guestEmail = trim((string) ($guest['email'] ?? ''));
                         if (!filter_var($guestEmail, FILTER_VALIDATE_EMAIL)) {
-                            $message = 'Adresse email invalide pour cet invite.';
+                            $message = 'Adresse email invalide pour cet invité.';
                             $messageType = 'error';
                         } else {
                             $sent = sendGuestInvitationEmail(
@@ -172,14 +172,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $guestInvitationLink,
                                 (string) ($guest['event_date'] ?? ''),
                                 (string) ($guest['location'] ?? ''),
-                                'Merci de confirmer votre presence via ce lien.',
+                                'Merci de confirmer votre présence via ce lien.',
                                 $dispatchError
                             );
                         }
                     } elseif ($channel === 'sms') {
                         $guestPhone = trim((string) ($guest['phone'] ?? ''));
                         if ($guestPhone === '') {
-                            $message = 'Numero telephone manquant pour cet invite.';
+                            $message = 'Numéro téléphone manquant pour cet invité.';
                             $messageType = 'error';
                         } else {
                             $sent = sendGuestSmsInvitation(
@@ -189,7 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $guestInvitationLink,
                                 (string) ($guest['event_date'] ?? ''),
                                 (string) ($guest['location'] ?? ''),
-                                'Merci de confirmer votre presence via ce lien.',
+                                'Merci de confirmer votre présence via ce lien.',
                                 $dispatchError,
                                 $providerMessageId
                             );
@@ -197,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } elseif ($channel === 'whatsapp') {
                         $guestPhone = trim((string) ($guest['phone'] ?? ''));
                         if ($guestPhone === '') {
-                            $message = 'Numero telephone manquant pour cet invite.';
+                            $message = 'Numéro téléphone manquant pour cet invité.';
                             $messageType = 'error';
                         } else {
                             $sent = sendGuestWhatsAppInvitation(
@@ -207,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $guestInvitationLink,
                                 (string) ($guest['event_date'] ?? ''),
                                 (string) ($guest['location'] ?? ''),
-                                'Merci de confirmer votre presence via ce lien.',
+                                'Merci de confirmer votre présence via ce lien.',
                                 $dispatchError,
                                 $providerMessageId
                             );
@@ -219,21 +219,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $guestInvitationLink,
                             (string) ($guest['event_date'] ?? ''),
                             (string) ($guest['location'] ?? ''),
-                            'Merci de confirmer votre presence via ce lien.'
+                            'Merci de confirmer votre présence via ce lien.'
                         );
                         $sent = true;
                     }
 
                     if ($sent) {
                         $message = $channel === 'manual'
-                            ? 'Message manuel genere. Copiez et partagez le texte ci-dessous.'
-                            : strtoupper($channel) . ' envoye avec succes.';
+                            ? 'Message manuel généré. Copiez et partagez le texte ci-dessous.'
+                            : strtoupper($channel) . ' envoyé avec succès.';
                         if ($providerMessageId) {
                             $message .= ' Ref: ' . $providerMessageId;
                         }
                         $messageType = 'success';
                     } elseif ($messageType !== 'error') {
-                        $message = 'Echec envoi ' . strtoupper($channel) . '.';
+                        $message = 'Échec envoi ' . strtoupper($channel) . '.';
                         if ($dispatchError) {
                             $message .= ' Detail: ' . $dispatchError;
                         }
@@ -538,23 +538,23 @@ HTML;
     <?php include __DIR__ . '/includes/organizer-sidebar.php'; ?>
     <main class="dashboard-content">
         <div class="section-title">
-            <span>Invites</span>
-            <h2>Gestion des invites</h2>
+            <span>Invités</span>
+            <h2>Gestion des invités</h2>
         </div>
         <div style="margin: 0 0 18px; display: flex; gap: 10px; flex-wrap: wrap;">
             <a class="button ghost" href="<?= $baseUrl; ?>/dashboard">Retour au dashboard</a>
-            <a class="button primary" href="<?= $baseUrl; ?>/scan-checkin">Scanner a l entree</a>
+            <a class="button primary" href="<?= $baseUrl; ?>/scan-checkin">Scanner à l'entrée</a>
         </div>
 
         <div class="card" style="margin-bottom: 18px;">
             <?php if ($creditControlEnabled): ?>
-                <p><strong>Credits invitations restants:</strong> <?= $summary['invitation_remaining']; ?> / <?= $summary['invitation_total']; ?></p>
-                <p style="margin-top: 6px; color: var(--text-mid);">Chaque inscription invite via lien consomme 1 credit invitation.</p>
+                <p><strong>Crédits invitations restants:</strong> <?= $summary['invitation_remaining']; ?> / <?= $summary['invitation_total']; ?></p>
+                <p style="margin-top: 6px; color: var(--text-mid);">Chaque inscription invité via lien consomme 1 crédit invitation.</p>
             <?php else: ?>
-                <p><strong>Credits invitations:</strong> mode libre temporaire (module credits non initialise).</p>
+                <p><strong>Crédits invitations:</strong> mode libre temporaire (module crédits non initialisé).</p>
             <?php endif; ?>
             <?php if (!$creditSchemaReady): ?>
-                <p style="margin-top: 6px; color: #92400e;">Le module credits est en initialisation sur ce serveur.</p>
+                <p style="margin-top: 6px; color: #92400e;">Le module crédits est en initialisation sur ce serveur.</p>
             <?php endif; ?>
         </div>
 
@@ -581,19 +581,19 @@ HTML;
         <?php endif; ?>
 
         <div class="card" style="margin-bottom: 22px;">
-            <h3 style="margin-bottom: 10px;">Lien d inscription autonome</h3>
+            <h3 style="margin-bottom: 10px;">Lien d'inscription autonome</h3>
             <p style="margin: 0; color: var(--text-mid);">
-                Partagez ce lien pour que chaque invite remplisse son propre formulaire. Le systeme cree automatiquement
-                le code reference et stoppe la creation quand les credits invitations sont epuises.
+                Partagez ce lien pour que chaque invité remplisse son propre formulaire. Le système crée automatiquement
+                le code référence et stoppe la création quand les crédits invitations sont épuisés.
             </p>
 
             <?php if (!$guestRegistrationSchemaReady): ?>
                 <p style="margin-top: 10px; color: #92400e;">
-                    Le module de lien public n est pas encore disponible sur ce serveur.
+                    Le module de lien public n'est pas encore disponible sur ce serveur.
                 </p>
             <?php elseif (empty($events)): ?>
                 <p style="margin-top: 10px; color: var(--text-mid);">
-                    Creez d abord un evenement pour obtenir un lien a partager.
+                    Créez d'abord un événement pour obtenir un lien à partager.
                 </p>
             <?php else: ?>
                 <div class="event-link-list">
@@ -605,7 +605,7 @@ HTML;
                         ?>
                         <article class="event-link-card">
                             <div>
-                                <h4><?= htmlspecialchars((string) ($event['title'] ?? 'Evenement'), ENT_QUOTES, 'UTF-8'); ?></h4>
+                                <h4><?= htmlspecialchars((string) ($event['title'] ?? 'Événement'), ENT_QUOTES, 'UTF-8'); ?></h4>
                                 <p class="event-link-meta">
                                     Date:
                                     <?= htmlspecialchars((string) ($event['event_date'] ?? 'Non definie'), ENT_QUOTES, 'UTF-8'); ?>
@@ -614,7 +614,7 @@ HTML;
                                     <p class="event-link-url"><?= htmlspecialchars($registrationLink, ENT_QUOTES, 'UTF-8'); ?></p>
                                 <?php else: ?>
                                     <p class="event-link-meta" style="margin-top: 8px; color: #92400e;">
-                                        Impossible de generer le lien public pour cet evenement.
+                                        Impossible de générer le lien public pour cet événement.
                                     </p>
                                 <?php endif; ?>
                             </div>
@@ -638,11 +638,11 @@ HTML;
         </div>
 
         <div class="card guests-register-card">
-            <h3 style="margin-bottom: 12px;">Invites enregistres</h3>
+            <h3 style="margin-bottom: 12px;">Invités enregistrés</h3>
             <div class="guest-list-grid">
                 <?php if (empty($guests)): ?>
                     <div class="guest-item-card">
-                        <p style="margin: 0; color: var(--text-mid);">Aucun invite enregistre pour le moment.</p>
+                        <p style="margin: 0; color: var(--text-mid);">Aucun invité enregistré pour le moment.</p>
                     </div>
                 <?php else: ?>
                     <?php foreach ($guests as $guest): ?>
@@ -670,8 +670,8 @@ HTML;
 
                             <div class="guest-info-grid">
                                 <p><strong>Email:</strong> <?= htmlspecialchars((string) ($guest['email'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></p>
-                                <p><strong>Telephone:</strong> <?= htmlspecialchars((string) ($guest['phone'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></p>
-                                <p><strong>Evenement:</strong> <?= htmlspecialchars((string) ($guest['event_title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
+                                <p><strong>Téléphone:</strong> <?= htmlspecialchars((string) ($guest['phone'] ?? 'N/A'), ENT_QUOTES, 'UTF-8'); ?></p>
+                                <p><strong>Événement:</strong> <?= htmlspecialchars((string) ($guest['event_title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                                 <p><strong>Check-in:</strong> <?= (int) ($guest['check_in_count'] ?? 0); ?></p>
                                 <p><strong>Table:</strong> <?= htmlspecialchars($seatLabel, ENT_QUOTES, 'UTF-8'); ?></p>
                             </div>
@@ -781,3 +781,4 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

@@ -348,7 +348,7 @@ function createCreditIncreaseRequest(PDO $pdo, int $userId, int $requestedInvita
     if (!isCreditRequestModuleEnabled($pdo)) {
         return [
             'ok' => false,
-            'message' => 'Module credits non initialise. Lancez php scripts/migrate_credit_system.php puis reessayez.',
+            'message' => 'Module crédits non initialisé. Lancez php scripts/migrate_credit_system.php puis réessayez.',
             'request_id' => null,
         ];
     }
@@ -359,7 +359,7 @@ function createCreditIncreaseRequest(PDO $pdo, int $userId, int $requestedInvita
     if ($requestedInvitationCredits <= 0 && $requestedEventCredits <= 0) {
         return [
             'ok' => false,
-            'message' => 'Indiquez au moins un credit a ajouter.',
+            'message' => 'Indiquez au moins un crédit à ajouter.',
             'request_id' => null,
         ];
     }
@@ -368,7 +368,7 @@ function createCreditIncreaseRequest(PDO $pdo, int $userId, int $requestedInvita
     if ($pendingRequest) {
         return [
             'ok' => false,
-            'message' => 'Une demande d augmentation est deja en attente.',
+            'message' => "Une demande d'augmentation est déjà en attente.",
             'request_id' => (int) $pendingRequest['id'],
         ];
     }
@@ -399,7 +399,7 @@ function createCreditIncreaseRequest(PDO $pdo, int $userId, int $requestedInvita
 
     return [
         'ok' => true,
-        'message' => 'Demande enregistree avec succes.',
+        'message' => 'Demande enregistrée avec succès.',
         'request_id' => (int) $pdo->lastInsertId(),
     ];
 }
@@ -429,7 +429,7 @@ function approveCreditRequestById(PDO $pdo, int $requestId, int $adminId, string
 {
     ensureCreditSystemSchema($pdo);
     if (!isCreditRequestModuleEnabled($pdo)) {
-        return ['ok' => false, 'message' => 'Module credits non initialise. Lancez php scripts/migrate_credit_system.php.'];
+        return ['ok' => false, 'message' => 'Module crédits non initialisé. Lancez php scripts/migrate_credit_system.php.'];
     }
 
     $pdo->beginTransaction();
@@ -440,7 +440,7 @@ function approveCreditRequestById(PDO $pdo, int $requestId, int $adminId, string
 
         if (!$request) {
             $pdo->rollBack();
-            return ['ok' => false, 'message' => 'Demande introuvable ou deja traitee.'];
+            return ['ok' => false, 'message' => 'Demande introuvable ou déjà traitée.'];
         }
 
         $requestedInvitationCredits = max(0, (int) ($request['requested_invitation_credits'] ?? 0));
@@ -474,13 +474,13 @@ function approveCreditRequestById(PDO $pdo, int $requestId, int $adminId, string
         ]);
 
         $pdo->commit();
-        return ['ok' => true, 'message' => 'Demande approuvee et credits ajoutes.'];
+        return ['ok' => true, 'message' => 'Demande approuvée et crédits ajoutés.'];
     } catch (Throwable $exception) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
 
-        return ['ok' => false, 'message' => 'Erreur lors de l approbation: ' . $exception->getMessage()];
+        return ['ok' => false, 'message' => "Erreur lors de l'approbation: " . $exception->getMessage()];
     }
 }
 
@@ -488,7 +488,7 @@ function rejectCreditRequestById(PDO $pdo, int $requestId, int $adminId, string 
 {
     ensureCreditSystemSchema($pdo);
     if (!isCreditRequestModuleEnabled($pdo)) {
-        return ['ok' => false, 'message' => 'Module credits non initialise. Lancez php scripts/migrate_credit_system.php.'];
+        return ['ok' => false, 'message' => 'Module crédits non initialisé. Lancez php scripts/migrate_credit_system.php.'];
     }
 
     try {
@@ -511,8 +511,9 @@ function rejectCreditRequestById(PDO $pdo, int $requestId, int $adminId, string 
     }
 
     if ($stmt->rowCount() < 1) {
-        return ['ok' => false, 'message' => 'Demande introuvable ou deja traitee.'];
+        return ['ok' => false, 'message' => 'Demande introuvable ou déjà traitée.'];
     }
 
-    return ['ok' => true, 'message' => 'Demande rejetee.'];
+    return ['ok' => true, 'message' => 'Demande rejetée.'];
 }
+

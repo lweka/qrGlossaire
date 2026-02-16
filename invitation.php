@@ -1,4 +1,4 @@
-﻿<?php include __DIR__ . '/includes/header.php'; ?>
+<?php include __DIR__ . '/includes/header.php'; ?>
 <?php
 $modelsDirectory = __DIR__ . '/assets/images/modele_invitations';
 $modelsWebPath = 'assets/images/modele_invitations';
@@ -42,13 +42,13 @@ $modelProfiles = [
         'rsvp_deadline' => '10 septembre 2026',
     ],
     'default' => [
-        'type_label' => 'Evenement',
+        'type_label' => 'Événement',
         'headline' => 'Invitation Personnalisee',
-        'meta' => 'Configurez votre modele et partagez-le en QR Code',
-        'date' => 'A definir',
-        'location' => 'A definir',
-        'dress_code' => 'A definir',
-        'rsvp_deadline' => 'A definir',
+        'meta' => 'Configurez votre modèle et partagez-le en QR Code',
+        'date' => 'À définir',
+        'location' => 'À définir',
+        'dress_code' => 'À définir',
+        'rsvp_deadline' => 'À définir',
     ],
 ];
 
@@ -124,7 +124,7 @@ usort(
 $activeModel = $invitationModels[0] ?? $modelProfiles['default'];
 ?>
 <section class="container invitation-hero">
-    <div class="badge">Modeles d invitations</div>
+    <div class="badge">Modèles d'invitations</div>
     <h1><?= htmlspecialchars((string) ($activeModel['headline'] ?? $modelProfiles['default']['headline']), ENT_QUOTES, 'UTF-8'); ?></h1>
     <p><?= htmlspecialchars((string) ($activeModel['meta'] ?? $modelProfiles['default']['meta']), ENT_QUOTES, 'UTF-8'); ?></p>
 </section>
@@ -175,16 +175,16 @@ $activeModel = $invitationModels[0] ?? $modelProfiles['default'];
     </div>
 
     <div class="invitation-section">
-        <h3>Confirmer ma presence</h3>
-        <button class="button primary" type="button" data-rsvp-button>Je confirme ma presence</button>
-        <p class="invitation-rsvp-status" data-rsvp-status>Cliquez sur le bouton pour simuler la confirmation de presence.</p>
-        <p style="margin-top: 12px; color: var(--muted);">Reponse attendue avant <span data-invitation-current-rsvp-deadline><?= htmlspecialchars((string) ($activeModel['rsvp_deadline'] ?? $modelProfiles['default']['rsvp_deadline']), ENT_QUOTES, 'UTF-8'); ?></span>.</p>
+        <h3>Confirmer ma présence</h3>
+        <button class="button primary" type="button" data-rsvp-button>Je confirme ma présence</button>
+        <p class="invitation-rsvp-status" data-rsvp-status>Cliquez sur le bouton pour simuler la confirmation de présence.</p>
+        <p style="margin-top: 12px; color: var(--muted);">Réponse attendue avant <span data-invitation-current-rsvp-deadline><?= htmlspecialchars((string) ($activeModel['rsvp_deadline'] ?? $modelProfiles['default']['rsvp_deadline']), ENT_QUOTES, 'UTF-8'); ?></span>.</p>
     </div>
 
     <div class="invitation-section">
         <h3>Votre QR Code personnel</h3>
         <div class="qr-box">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=INVITATION-DEMO" alt="QR code invite">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=INVITATION-DEMO" alt="QR code invité">
             <button class="button ghost" type="button">Telecharger le QR code</button>
         </div>
     </div>
@@ -202,8 +202,9 @@ $activeModel = $invitationModels[0] ?? $modelProfiles['default'];
 </section>
 
 <section class="container" style="padding: 0 0 40px; text-align: center;">
-    <a class="button ghost" href="<?= $baseUrl; ?>/">Retourner a l'accueil</a>
+    <a class="button ghost" href="<?= $baseUrl; ?>/">Retourner à l'accueil</a>
 </section>
 
 <?php include __DIR__ . '/includes/footer.php'; ?>
+
 

@@ -171,7 +171,7 @@ function createGuestThroughRegistrationLink(PDO $pdo, int $eventId, int $userId,
 {
     $result = [
         'ok' => false,
-        'message' => 'Impossible de creer l invitation.',
+        'message' => "Impossible de créer l'invitation.",
         'guest_id' => 0,
         'guest_code' => '',
         'credit_control_enabled' => false,
@@ -211,17 +211,17 @@ function createGuestThroughRegistrationLink(PDO $pdo, int $eventId, int $userId,
 
         if (!$event) {
             $pdo->rollBack();
-            $result['message'] = 'Cet evenement est introuvable.';
+            $result['message'] = 'Cet événement est introuvable.';
             return $result;
         }
         if ((int) ($event['is_active'] ?? 0) !== 1) {
             $pdo->rollBack();
-            $result['message'] = 'Les inscriptions sont fermees pour cet evenement.';
+            $result['message'] = 'Les inscriptions sont fermées pour cet événement.';
             return $result;
         }
         if ((int) ($event['public_registration_enabled'] ?? 0) !== 1) {
             $pdo->rollBack();
-            $result['message'] = 'Ce lien d inscription est actuellement desactive.';
+            $result['message'] = "Ce lien d'inscription est actuellement désactivé.";
             return $result;
         }
 
@@ -256,7 +256,7 @@ function createGuestThroughRegistrationLink(PDO $pdo, int $eventId, int $userId,
 
             if ($usedCredits >= $totalCredits) {
                 $pdo->rollBack();
-                $result['message'] = 'Limite atteinte: plus aucun credit invitation disponible pour ce lien.';
+                $result['message'] = 'Limite atteinte: plus aucun crédit invitation disponible pour ce lien.';
                 $result['invitation_remaining_after'] = 0;
                 return $result;
             }
@@ -275,7 +275,7 @@ function createGuestThroughRegistrationLink(PDO $pdo, int $eventId, int $userId,
             ]);
             if ($emailDupStmt->fetch()) {
                 $pdo->rollBack();
-                $result['message'] = 'Une invitation existe deja pour cet email sur cet evenement.';
+                $result['message'] = 'Une invitation existe déjà pour cet email sur cet événement.';
                 return $result;
             }
         }
@@ -321,7 +321,7 @@ function createGuestThroughRegistrationLink(PDO $pdo, int $eventId, int $userId,
 
                 return [
                     'ok' => true,
-                    'message' => 'Invitation creee avec succes.',
+                    'message' => 'Invitation créée avec succès.',
                     'guest_id' => $guestId,
                     'guest_code' => $guestCode,
                     'credit_control_enabled' => $result['credit_control_enabled'],
@@ -344,14 +344,15 @@ function createGuestThroughRegistrationLink(PDO $pdo, int $eventId, int $userId,
         }
 
         $pdo->rollBack();
-        $result['message'] = 'Impossible de generer un code invitation unique. Reessayez.';
+        $result['message'] = 'Impossible de générer un code invitation unique. Réessayez.';
         return $result;
     } catch (Throwable $throwable) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
 
-        $result['message'] = 'Erreur technique lors de la creation de l invitation.';
+        $result['message'] = "Erreur technique lors de la création de l'invitation.";
         return $result;
     }
 }
+

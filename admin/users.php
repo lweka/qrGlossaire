@@ -12,7 +12,7 @@ $adminId = (int) ($_SESSION['admin_id'] ?? 0);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Token de securite invalide.';
+        $message = 'Token de sécurité invalide.';
         $messageType = 'error';
     } else {
         $action = sanitizeInput($_POST['action'] ?? '');
@@ -37,9 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $creditsGranted = grantCreditsToUser($pdo, $userId, $invitationCredits, $eventCredits);
                 $pdo->commit();
                 if ($creditsGranted) {
-                    $message = 'Paiement confirme et credits ajoutes (' . $invitationCredits . ' invitations, ' . $eventCredits . ' evenement(s)).';
+                    $message = 'Paiement confirmé et crédits ajoutés (' . $invitationCredits . ' invitations, ' . $eventCredits . ' événement(s)).';
                 } else {
-                    $message = 'Paiement confirme. Module credits non initialise: executez php scripts/migrate_credit_system.php.';
+                    $message = 'Paiement confirmé. Module crédits non initialisé: exécutez php scripts/migrate_credit_system.php.';
                     $messageType = 'warning';
                 }
             } catch (Throwable $exception) {
@@ -86,7 +86,7 @@ foreach ($users as $user) {
 <section class="container section">
     <div class="section-title">
         <span>Admin</span>
-        <h2>Gestion des utilisateurs et credits</h2>
+        <h2>Gestion des utilisateurs et crédits</h2>
     </div>
     <div style="margin: 0 0 18px;">
         <a class="button ghost" href="<?= $baseUrl; ?>/admin/dashboard">Retour au dashboard</a>
@@ -109,14 +109,14 @@ foreach ($users as $user) {
     <?php if (!$creditSchemaReady || !$creditQuotaEnabled || !$creditRequestModuleEnabled): ?>
         <div class="card" style="margin-bottom: 18px;">
             <p style="color: #92400e;">
-                Le module credits n est pas entierement initialise sur ce serveur.
+                Le module crédits n'est pas entièrement initialisé sur ce serveur.
                 Lancez <code>php scripts/migrate_credit_system.php</code> puis actualisez.
             </p>
         </div>
     <?php endif; ?>
 
     <div class="card" style="margin-bottom: 22px;">
-        <h3 style="margin-bottom: 10px;">Demandes d augmentation en attente</h3>
+        <h3 style="margin-bottom: 10px;">Demandes d'augmentation en attente</h3>
         <p style="margin-bottom: 14px; color: var(--text-mid);">
             Prix de reference: $<?= number_format(invitationUnitPriceUsd(), 2); ?> par invitation.
         </p>
@@ -148,7 +148,7 @@ foreach ($users as $user) {
                             </td>
                             <td>
                                 +<?= (int) ($request['requested_invitation_credits'] ?? 0); ?> invitations<br>
-                                +<?= (int) ($request['requested_event_credits'] ?? 0); ?> credit(s) evenement
+                                +<?= (int) ($request['requested_event_credits'] ?? 0); ?> crédit(s) événement
                             </td>
                             <td>$<?= number_format((float) ($request['amount_usd'] ?? 0), 2); ?></td>
                             <td><?= htmlspecialchars((string) ($request['request_note'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -185,7 +185,7 @@ foreach ($users as $user) {
                     <th>Statut</th>
                     <th>Paiement</th>
                     <th>Invitations</th>
-                    <th>Evenements</th>
+                    <th>Événements</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -231,9 +231,9 @@ foreach ($users as $user) {
                                     <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
                                     <input type="hidden" name="action" value="confirm-payment">
                                     <input type="hidden" name="id" value="<?= (int) $user['id']; ?>">
-                                    <input type="number" name="invitation_credits" min="0" value="<?= DEFAULT_INITIAL_INVITATION_CREDITS; ?>" style="width: 110px;" title="Credits invitations" <?= $creditQuotaEnabled ? '' : 'disabled'; ?>>
-                                    <input type="number" name="event_credits" min="0" value="<?= DEFAULT_INITIAL_EVENT_CREDITS; ?>" style="width: 90px;" title="Credits evenement" <?= $creditQuotaEnabled ? '' : 'disabled'; ?>>
-                                    <button class="button ghost" type="submit"><?= $creditQuotaEnabled ? 'Paiement + credits' : 'Paiement'; ?></button>
+                                    <input type="number" name="invitation_credits" min="0" value="<?= DEFAULT_INITIAL_INVITATION_CREDITS; ?>" style="width: 110px;" title="Crédits invitations" <?= $creditQuotaEnabled ? '' : 'disabled'; ?>>
+                                    <input type="number" name="event_credits" min="0" value="<?= DEFAULT_INITIAL_EVENT_CREDITS; ?>" style="width: 90px;" title="Crédits événement" <?= $creditQuotaEnabled ? '' : 'disabled'; ?>>
+                                    <button class="button ghost" type="submit"><?= $creditQuotaEnabled ? 'Paiement + crédits' : 'Paiement'; ?></button>
                                 </form>
 
                                 <form method="post" style="display: inline-block; margin-right: 6px;">
@@ -258,3 +258,4 @@ foreach ($users as $user) {
     </div>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+

@@ -11,7 +11,7 @@ $forceDownload = (string) ($_GET['download'] ?? '0') === '1';
 if ($code === '') {
     http_response_code(400);
     header('Content-Type: text/plain; charset=UTF-8');
-    echo 'Code invite invalide.';
+    echo 'Code invité invalide.';
     exit;
 }
 
@@ -62,7 +62,7 @@ if ($pngData === false && ini_get('allow_url_fopen')) {
 if (!is_string($pngData) || $pngData === '') {
     http_response_code(502);
     header('Content-Type: text/plain; charset=UTF-8');
-    echo 'Impossible de generer le QR code pour le moment.';
+    echo 'Impossible de générer le QR code pour le moment.';
     exit;
 }
 
@@ -75,3 +75,4 @@ header('X-Content-Type-Options: nosniff');
 header('Content-Disposition: ' . ($forceDownload ? 'attachment' : 'inline') . '; filename="' . $fileName . '"');
 echo $pngData;
 exit;
+

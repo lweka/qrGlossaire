@@ -72,28 +72,28 @@ $confirmationRate = $totalGuests > 0 ? round(($confirmedGuests / $totalGuests) *
         </div>
 
         <div class="card" style="margin-bottom: 22px;">
-            <h3 style="margin-bottom: 10px;">Synthese RSVP</h3>
-            <p><strong>Total invites:</strong> <?= $totalGuests; ?></p>
-            <p><strong>Confirmes:</strong> <?= $confirmedGuests; ?></p>
+            <h3 style="margin-bottom: 10px;">Synthèse RSVP</h3>
+            <p><strong>Total invités:</strong> <?= $totalGuests; ?></p>
+            <p><strong>Confirmés:</strong> <?= $confirmedGuests; ?></p>
             <p><strong>En attente:</strong> <?= $pendingGuests; ?></p>
-            <p><strong>Declines:</strong> <?= $declinedGuests; ?></p>
+            <p><strong>Déclinés:</strong> <?= $declinedGuests; ?></p>
         </div>
 
         <div class="card">
-            <h3 style="margin-bottom: 12px;">Detail par evenement</h3>
+            <h3 style="margin-bottom: 12px;">Détail par événement</h3>
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Evenement</th>
-                        <th>Invites</th>
-                        <th>Confirmes</th>
+                        <th>Événement</th>
+                        <th>Invités</th>
+                        <th>Confirmés</th>
                         <th>Taux confirmation</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($eventStats)): ?>
                         <tr>
-                            <td colspan="4">Aucun evenement enregistre.</td>
+                            <td colspan="4">Aucun événement enregistré.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($eventStats as $event): ?>
@@ -116,3 +116,4 @@ $confirmationRate = $totalGuests > 0 ? round(($confirmedGuests / $totalGuests) *
     </main>
 </div>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

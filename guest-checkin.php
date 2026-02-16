@@ -62,7 +62,7 @@ if ($code !== '') {
 
 if ($scanMode && $guest) {
     if (($guest['rsvp_status'] ?? 'pending') !== 'confirmed') {
-        $message = 'Acces refuse: cet invite n est pas confirme.';
+        $message = "Accès refusé: cet invité n'est pas confirmé.";
         $messageType = 'error';
     } else {
         $previousCount = (int) ($guest['check_in_count'] ?? 0);
@@ -77,10 +77,10 @@ if ($scanMode && $guest) {
         $guest = findGuestForCheckin($pdo, $code, $guestCustomAnswersEnabled);
         $updatedCount = (int) ($guest['check_in_count'] ?? 0);
         if ($previousCount <= 0) {
-            $message = 'Entree validee avec succes.';
+            $message = "Entrée validée avec succès.";
             $messageType = 'success';
         } else {
-            $message = 'QR deja scanne auparavant. Nombre total de scans: ' . $updatedCount . '.';
+            $message = 'QR déjà scanné auparavant. Nombre total de scans: ' . $updatedCount . '.';
             $messageType = 'warning';
         }
     }
@@ -91,12 +91,12 @@ if ($scanMode && $guest) {
     <div class="form-card" style="max-width: 760px;">
         <div class="section-title">
             <span>Check-in</span>
-            <h2>Validation d entree</h2>
+            <h2>Validation d'entrée</h2>
         </div>
 
         <?php if (!$guest): ?>
             <div class="card" style="margin-bottom: 18px;">
-                <p style="color: #dc2626;">Code invite invalide.</p>
+                <p style="color: #dc2626;">Code invité invalide.</p>
             </div>
         <?php else: ?>
             <?php if ($message): ?>
@@ -115,7 +115,7 @@ if ($scanMode && $guest) {
 
             <div class="card" style="margin-bottom: 18px;">
                 <p><strong>Invite:</strong> <?= htmlspecialchars((string) ($guest['full_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
-                <p><strong>Evenement:</strong> <?= htmlspecialchars((string) ($guest['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
+                <p><strong>Événement:</strong> <?= htmlspecialchars((string) ($guest['title'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Date:</strong> <?= htmlspecialchars((string) ($guest['event_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Lieu:</strong> <?= htmlspecialchars((string) ($guest['location'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php
@@ -134,12 +134,12 @@ if ($scanMode && $guest) {
                 <?php endif; ?>
                 <p><strong>Statut RSVP:</strong> <?= htmlspecialchars((string) ($guest['rsvp_status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Scans:</strong> <?= (int) ($guest['check_in_count'] ?? 0); ?></p>
-                <p><strong>Premiere entree:</strong> <?= htmlspecialchars((string) ($guest['check_in_time'] ?? 'Non enregistree'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <p><strong>Première entrée:</strong> <?= htmlspecialchars((string) ($guest['check_in_time'] ?? 'Non enregistrée'), ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
 
             <?php if (($guest['rsvp_status'] ?? 'pending') === 'confirmed' && !$scanMode): ?>
                 <div class="card">
-                    <p style="margin-bottom: 12px;">Pret pour validation d entree.</p>
+                    <p style="margin-bottom: 12px;">Prêt pour validation d'entrée.</p>
                     <a class="button primary" href="<?= $baseUrl; ?>/guest-checkin?code=<?= rawurlencode((string) $guest['guest_code']); ?>&scan=1">Valider maintenant</a>
                 </div>
             <?php endif; ?>
@@ -147,3 +147,4 @@ if ($scanMode && $guest) {
     </div>
 </section>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

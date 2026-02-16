@@ -18,18 +18,18 @@ $creditRequestModuleEnabled = isCreditRequestModuleEnabled($pdo);
         <h2>Tableau de bord administrateur</h2>
     </div>
     <div class="card" style="margin-bottom: 20px;">
-        <h3 style="margin-bottom: 12px;">Acces rapide supervision</h3>
+        <h3 style="margin-bottom: 12px;">Accès rapide supervision</h3>
         <div style="display: flex; flex-wrap: wrap; gap: 10px;">
             <a class="button ghost" href="<?= $baseUrl; ?>/admin/validation">Valider comptes</a>
             <a class="button ghost" href="<?= $baseUrl; ?>/admin/users">Utilisateurs</a>
             <a class="button ghost" href="<?= $baseUrl; ?>/admin/logs">Logs</a>
-            <a class="button ghost" href="<?= $baseUrl; ?>/admin/settings">Parametres</a>
+            <a class="button ghost" href="<?= $baseUrl; ?>/admin/settings">Paramètres</a>
         </div>
     </div>
     <?php if (!$creditSchemaReady || !$creditRequestModuleEnabled): ?>
         <div class="card" style="margin-bottom: 20px;">
             <p style="color: #92400e;">
-                Module credits partiellement initialise. Executez <code>php scripts/migrate_credit_system.php</code> sur le serveur si necessaire.
+                Module crédits partiellement initialisé. Exécutez <code>php scripts/migrate_credit_system.php</code> sur le serveur si nécessaire.
             </p>
         </div>
     <?php endif; ?>
@@ -43,17 +43,18 @@ $creditRequestModuleEnabled = isCreditRequestModuleEnabled($pdo);
             <p><strong><?= $newUsers; ?></strong> sur 7 jours</p>
         </div>
         <div class="card">
-            <h3>Evenements crees</h3>
-            <p><strong><?= $totalEvents; ?></strong> evenements</p>
+            <h3>Événements créés</h3>
+            <p><strong><?= $totalEvents; ?></strong> événements</p>
         </div>
         <div class="card">
-            <h3>Paiements confirmes</h3>
-            <p><strong><?= $totalPaidUsers; ?></strong> comptes payes</p>
+            <h3>Paiements confirmés</h3>
+            <p><strong><?= $totalPaidUsers; ?></strong> comptes payés</p>
         </div>
         <div class="card">
-            <h3>Demandes credits</h3>
+            <h3>Demandes crédits</h3>
             <p><strong><?= $pendingCreditRequests; ?></strong> en attente</p>
         </div>
     </div>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+

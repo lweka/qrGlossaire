@@ -1,13 +1,13 @@
 <?php
 $dashboardSection = $dashboardSection ?? 'overview';
 $organizerMenu = [
-    'overview' => ['label' => 'Vue generale', 'path' => '/dashboard'],
-    'create_event' => ['label' => 'Creer un evenement', 'path' => '/create-event'],
-    'guests' => ['label' => 'Invites', 'path' => '/guests'],
-    'checkin_scan' => ['label' => 'Scan entree', 'path' => '/scan-checkin'],
+    'overview' => ['label' => 'Vue générale', 'path' => '/dashboard'],
+    'create_event' => ['label' => 'Créer un événement', 'path' => '/create-event'],
+    'guests' => ['label' => 'Invités', 'path' => '/guests'],
+    'checkin_scan' => ['label' => 'Scan entrée', 'path' => '/scan-checkin'],
     'communications' => ['label' => 'Communication', 'path' => '/communications'],
     'reports' => ['label' => 'Rapports', 'path' => '/reports'],
-    'settings' => ['label' => 'Parametres', 'path' => '/settings'],
+    'settings' => ['label' => 'Paramètres', 'path' => '/settings'],
 ];
 ?>
 <aside class="sidebar" data-dashboard-sidebar>
@@ -34,3 +34,4 @@ $organizerMenu = [
         <?php endforeach; ?>
     </nav>
 </aside>
+

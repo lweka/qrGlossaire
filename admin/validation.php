@@ -48,13 +48,13 @@ if (!empty($_GET['action']) && $_GET['action'] === 'generate-link' && !empty($_G
         if ($mailSent) {
             $safeEmail = htmlspecialchars((string) $targetUser['email'], ENT_QUOTES, 'UTF-8');
             $messageType = 'success';
-            $message = 'Lien d activation envoye automatiquement a ' . $safeEmail . ' (valide ' . TOKEN_EXPIRY_DAYS . ' jours).';
+            $message = "Lien d'activation envoyé automatiquement à " . $safeEmail . ' (valide ' . TOKEN_EXPIRY_DAYS . ' jours).';
             $generatedLink = null;
         } else {
             $messageType = 'warning';
-            $message = 'Lien genere mais email non envoye automatiquement.';
+            $message = 'Lien généré mais email non envoyé automatiquement.';
             if (defined('APP_DEBUG') && APP_DEBUG && $mailError) {
-                $message .= ' Detail: ' . $mailError;
+                $message .= ' Détail: ' . $mailError;
             } else {
                 $message .= ' Copiez le lien ci-dessous et envoyez-le manuellement.';
             }
@@ -85,12 +85,12 @@ $pendingUsers = $pdo->query('SELECT id, full_name, email, payment_confirmed FROM
             ?>
             <p style="color: <?= $messageColor; ?>;"><?= $message; ?></p>
             <?php if ($generatedLink): ?>
-                <p style="margin-top: 8px;">Lien d activation : <a href="<?= $generatedLink; ?>"><?= $generatedLink; ?></a></p>
+                <p style="margin-top: 8px;">Lien d'activation : <a href="<?= $generatedLink; ?>"><?= $generatedLink; ?></a></p>
             <?php endif; ?>
         </div>
     <?php endif; ?>
     <div class="card">
-        <p>Confirmez d abord le paiement (et les credits) dans <a href="<?= $baseUrl; ?>/admin/users">Utilisateurs</a>, puis envoyez automatiquement le lien d activation (valide 7 jours).</p>
+        <p>Confirmez d'abord le paiement (et les crédits) dans <a href="<?= $baseUrl; ?>/admin/users">Utilisateurs</a>, puis envoyez automatiquement le lien d'activation (valide 7 jours).</p>
         <?php if (empty($pendingUsers)): ?>
             <p style="margin-top: 12px;">Aucun organisateur en attente.</p>
         <?php else: ?>
@@ -113,7 +113,7 @@ $pendingUsers = $pdo->query('SELECT id, full_name, email, payment_confirmed FROM
                                 <?php if ((int) ($user['payment_confirmed'] ?? 0) === 1): ?>
                                     <a class="button primary" href="<?= $baseUrl; ?>/admin/validation?action=generate-link&id=<?= $user['id']; ?>">Envoyer lien</a>
                                 <?php else: ?>
-                                    <span style="color: var(--text-mid);">Confirmez d abord le paiement</span>
+                                    <span style="color: var(--text-mid);">Confirmez d'abord le paiement</span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -124,3 +124,4 @@ $pendingUsers = $pdo->query('SELECT id, full_name, email, payment_confirmed FROM
     </div>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+

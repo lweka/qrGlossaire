@@ -14,10 +14,10 @@ $requestModuleEnabled = !empty($summary['request_module_enabled']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'request-credit') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Token de securite invalide.';
+        $message = 'Token de sécurité invalide.';
         $messageType = 'error';
     } elseif (!$requestModuleEnabled) {
-        $message = 'Module credits non initialise. Contactez l administration.';
+        $message = "Module crédits non initialisé. Contactez l'administration.";
         $messageType = 'warning';
     } else {
         $requestedInvitationCredits = max(0, (int) ($_POST['requested_invitation_credits'] ?? 0));
@@ -102,44 +102,44 @@ $recentGuests = $recentStmt->fetchAll();
         <?php if (!$creditSchemaReady || !$creditControlEnabled || !$requestModuleEnabled): ?>
             <div class="card" style="margin-bottom: 18px;">
                 <p style="color: #92400e;">
-                    Le module credits est en cours d initialisation. Certaines limites et demandes peuvent etre indisponibles temporairement.
+                    Le module crédits est en cours d'initialisation. Certaines limites et demandes peuvent être indisponibles temporairement.
                 </p>
             </div>
         <?php endif; ?>
 
         <div class="card-grid">
             <div class="card">
-                <h3>Credits invitations</h3>
+                <h3>Crédits invitations</h3>
                 <?php if ($creditControlEnabled): ?>
                     <p><strong><?= $summary['invitation_remaining']; ?></strong> restants / <?= $summary['invitation_total']; ?> achetes</p>
                 <?php else: ?>
-                    <p><strong>N/A</strong> module credits indisponible</p>
+                    <p><strong>N/A</strong> module crédits indisponible</p>
                 <?php endif; ?>
             </div>
             <div class="card">
-                <h3>Credits creation evenement</h3>
+                <h3>Crédits création événement</h3>
                 <?php if ($creditControlEnabled): ?>
                     <p><strong><?= $summary['event_remaining']; ?></strong> restants / <?= $summary['event_total']; ?> achetes</p>
                 <?php else: ?>
-                    <p><strong>N/A</strong> module credits indisponible</p>
+                    <p><strong>N/A</strong> module crédits indisponible</p>
                 <?php endif; ?>
             </div>
             <div class="card">
                 <h3>Taux de confirmation</h3>
-                <p><strong><?= $totalInvites > 0 ? round(($confirmed / $totalInvites) * 100) : 0; ?>%</strong> confirmations recues</p>
+                <p><strong><?= $totalInvites > 0 ? round(($confirmed / $totalInvites) * 100) : 0; ?>%</strong> confirmations reçues</p>
             </div>
             <div class="card">
-                <h3>Evenements crees</h3>
-                <p><strong><?= $eventCount; ?></strong> evenement(s)</p>
+                <h3>Événements créés</h3>
+                <p><strong><?= $eventCount; ?></strong> événement(s)</p>
             </div>
         </div>
 
         <section class="section" style="padding: 32px 0 0;">
             <div class="card" style="margin-bottom: 18px;">
-                <h3 style="margin-bottom: 10px;">Augmentation de credits</h3>
+                <h3 style="margin-bottom: 10px;">Augmentation de crédits</h3>
                 <p style="margin-bottom: 14px; color: var(--text-mid);">
                     Prix en vigueur: <strong>$<?= number_format(invitationUnitPriceUsd(), 2); ?></strong> par invitation.
-                    Vous pouvez aussi demander des credits de creation d evenement.
+                    Vous pouvez aussi demander des crédits de création d'événement.
                 </p>
 
                 <?php if (!$requestModuleEnabled): ?>
@@ -147,7 +147,7 @@ $recentGuests = $recentStmt->fetchAll();
                 <?php elseif ($pendingRequest): ?>
                     <p style="color: #92400e;">
                         Demande en attente: +<?= (int) $pendingRequest['requested_invitation_credits']; ?> invitations,
-                        +<?= (int) $pendingRequest['requested_event_credits']; ?> credit(s) evenement,
+                        +<?= (int) $pendingRequest['requested_event_credits']; ?> crédit(s) événement,
                         montant attendu $<?= number_format((float) ($pendingRequest['amount_usd'] ?? 0), 2); ?>.
                     </p>
                 <?php else: ?>
@@ -155,15 +155,15 @@ $recentGuests = $recentStmt->fetchAll();
                         <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
                         <input type="hidden" name="action" value="request-credit">
                         <div class="form-group">
-                            <label for="requested_invitation_credits">Invitations supplementaires</label>
+                            <label for="requested_invitation_credits">Invitations supplémentaires</label>
                             <input id="requested_invitation_credits" name="requested_invitation_credits" type="number" min="0" step="1" value="50" required>
                         </div>
                         <div class="form-group">
-                            <label for="requested_event_credits">Credits creation evenement supplementaires</label>
+                            <label for="requested_event_credits">Crédits création événement supplémentaires</label>
                             <input id="requested_event_credits" name="requested_event_credits" type="number" min="0" step="1" value="0" required>
                         </div>
                         <div class="form-group">
-                            <label for="request_note">Message pour l administration (optionnel)</label>
+                            <label for="request_note">Message pour l'administration (optionnel)</label>
                             <textarea id="request_note" name="request_note" rows="3" placeholder="Ex: J ai besoin de 50 invitations pour un nouveau lot."></textarea>
                         </div>
                         <button class="button primary" type="submit">Envoyer la demande</button>
@@ -177,17 +177,17 @@ $recentGuests = $recentStmt->fetchAll();
                     $statusLabel = $status === 'approved' ? 'approuvee' : 'rejetee';
                     ?>
                     <p style="margin-top: 14px; color: <?= $statusColor; ?>;">
-                        Derniere demande <?= $statusLabel; ?>:
+                        Dernière demande <?= $statusLabel; ?>:
                         +<?= (int) $latestProcessedRequest['requested_invitation_credits']; ?> invitations /
-                        +<?= (int) $latestProcessedRequest['requested_event_credits']; ?> credit(s) evenement.
+                        +<?= (int) $latestProcessedRequest['requested_event_credits']; ?> crédit(s) événement.
                         <?= !empty($latestProcessedRequest['admin_note']) ? 'Note admin: ' . htmlspecialchars((string) $latestProcessedRequest['admin_note'], ENT_QUOTES, 'UTF-8') : ''; ?>
                     </p>
                 <?php endif; ?>
             </div>
 
             <div class="section-title">
-                <span>Suivi invites</span>
-                <h2>Derniers invites</h2>
+                <span>Suivi invités</span>
+                <h2>Derniers invités</h2>
             </div>
             <table class="table">
                 <thead>
@@ -200,7 +200,7 @@ $recentGuests = $recentStmt->fetchAll();
                 <tbody>
                     <?php if (empty($recentGuests)): ?>
                         <tr>
-                            <td colspan="3">Aucun invite pour le moment.</td>
+                            <td colspan="3">Aucun invité pour le moment.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($recentGuests as $guest): ?>
@@ -217,3 +217,4 @@ $recentGuests = $recentStmt->fetchAll();
     </main>
 </div>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

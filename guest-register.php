@@ -62,13 +62,13 @@ if ($requestMethod === 'POST') {
     $formPhone = sanitizeInput($_POST['phone'] ?? '');
 
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Token de securite invalide.';
+        $message = 'Token de sécurité invalide.';
         $messageType = 'error';
     } elseif (!$guestRegistrationSchemaReady) {
-        $message = 'Le service d inscription est temporairement indisponible.';
+        $message = "Le service d'inscription est temporairement indisponible.";
         $messageType = 'error';
     } elseif (!$event) {
-        $message = 'Lien d inscription invalide ou introuvable.';
+        $message = "Lien d'inscription invalide ou introuvable.";
         $messageType = 'error';
     } else {
         $creation = createGuestThroughRegistrationLink(
@@ -86,7 +86,7 @@ if ($requestMethod === 'POST') {
             header('Location: ' . $redirectPath);
             exit;
         } else {
-            $message = (string) ($creation['message'] ?? 'Impossible de creer l invitation.');
+            $message = (string) ($creation['message'] ?? "Impossible de créer l'invitation.");
             $messageType = stripos($message, 'Limite atteinte') !== false ? 'warning' : 'error';
         }
     }
@@ -100,9 +100,9 @@ $eventIsOpen = $event
 $creditsAvailable = !$creditControlEnabled || (int) ($invitationRemaining ?? 0) > 0;
 
 if ($requestMethod !== 'POST' && $createdGuestCode !== '' && $message === null) {
-    $message = 'Inscription enregistree avec succes.';
+    $message = 'Inscription enregistrée avec succès.';
     if ($creditControlEnabled) {
-        $message .= ' Credits invitations restants pour ce lien: ' . max(0, (int) ($invitationRemaining ?? 0)) . '.';
+        $message .= ' Crédits invitations restants pour ce lien: ' . max(0, (int) ($invitationRemaining ?? 0)) . '.';
     }
     $messageType = 'success';
 }
@@ -166,7 +166,7 @@ HTML;
 <section class="container section">
     <div class="form-card public-register-wrap">
         <div class="section-title">
-            <span>Inscription invite</span>
+            <span>Inscription invité</span>
             <h2>Recevoir mon invitation QR</h2>
         </div>
 
@@ -186,21 +186,21 @@ HTML;
 
         <?php if (!$guestRegistrationSchemaReady): ?>
             <div class="card">
-                <p style="color: #dc2626;">Service d inscription indisponible pour le moment.</p>
+                <p style="color: #dc2626;">Service d'inscription indisponible pour le moment.</p>
             </div>
         <?php elseif (!$event): ?>
             <div class="card">
-                <p style="color: #dc2626;">Ce lien n est pas valide ou l evenement n existe plus.</p>
+                <p style="color: #dc2626;">Ce lien n'est pas valide ou l'événement n'existe plus.</p>
             </div>
         <?php else: ?>
             <div class="card public-register-event">
-                <h3><?= htmlspecialchars((string) ($event['title'] ?? 'Evenement'), ENT_QUOTES, 'UTF-8'); ?></h3>
-                <p class="public-register-meta"><strong>Date:</strong> <?= htmlspecialchars((string) ($event['event_date'] ?? 'A definir'), ENT_QUOTES, 'UTF-8'); ?></p>
-                <p class="public-register-meta"><strong>Lieu:</strong> <?= htmlspecialchars((string) ($event['location'] ?? 'A definir'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <h3><?= htmlspecialchars((string) ($event['title'] ?? 'Événement'), ENT_QUOTES, 'UTF-8'); ?></h3>
+                <p class="public-register-meta"><strong>Date:</strong> <?= htmlspecialchars((string) ($event['event_date'] ?? 'À définir'), ENT_QUOTES, 'UTF-8'); ?></p>
+                <p class="public-register-meta"><strong>Lieu:</strong> <?= htmlspecialchars((string) ($event['location'] ?? 'À définir'), ENT_QUOTES, 'UTF-8'); ?></p>
                 <p class="public-register-meta"><strong>Organisateur:</strong> <?= htmlspecialchars((string) ($event['organizer_name'] ?? 'Organisateur'), ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php if ($creditControlEnabled): ?>
                     <p class="public-register-meta">
-                        <strong>Places restantes via credits:</strong>
+                        <strong>Places restantes via crédits:</strong>
                         <?= (int) ($invitationRemaining ?? 0); ?>
                     </p>
                 <?php endif; ?>
@@ -208,35 +208,35 @@ HTML;
 
             <?php if ($createdGuestCode !== ''): ?>
                 <div class="card" style="margin-bottom: 18px;">
-                    <h3 style="margin-bottom: 10px;">Votre inscription est confirmee</h3>
+                    <h3 style="margin-bottom: 10px;">Votre inscription est confirmée</h3>
                     <p class="public-register-meta" style="margin-top: 0;">Conservez ce numero de reference:</p>
                     <p class="public-register-ref"><strong><?= htmlspecialchars($createdGuestCode, ENT_QUOTES, 'UTF-8'); ?></strong></p>
-                    <p class="public-register-meta">Lien personnel invitation:</p>
+                    <p class="public-register-meta">Lien personnel d'invitation:</p>
                     <p class="public-register-ref"><?= htmlspecialchars($createdInvitationAbsolute, ENT_QUOTES, 'UTF-8'); ?></p>
                     <div class="public-register-actions">
                         <a class="button primary" href="<?= htmlspecialchars($createdInvitationPath, ENT_QUOTES, 'UTF-8'); ?>">Ouvrir mon invitation</a>
                         <a class="button ghost" href="<?= htmlspecialchars($createdInvitationPath, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Ouvrir dans un nouvel onglet</a>
                     </div>
                     <p class="public-register-meta" style="margin-top: 12px;">
-                        Le QR code d acces sera actif apres confirmation de presence sur votre invitation.
+                        Le QR code d'accès sera actif après confirmation de présence sur votre invitation.
                     </p>
                 </div>
             <?php endif; ?>
 
             <?php if (!$eventIsOpen): ?>
                 <div class="card">
-                    <p style="color: #92400e;">Les inscriptions sont fermees pour cet evenement.</p>
+                    <p style="color: #92400e;">Les inscriptions sont fermées pour cet événement.</p>
                 </div>
             <?php elseif (!$creditsAvailable): ?>
                 <div class="card">
                     <p style="color: #92400e;">
-                        Vous ne pouvez plus creer d invitation avec ce lien: le quota de credits invitations est atteint.
+                        Vous ne pouvez plus créer d'invitation avec ce lien: le quota de crédits invitations est atteint.
                     </p>
                 </div>
             <?php elseif ($createdGuestCode !== ''): ?>
                 <div class="card">
                     <p style="color: var(--text-mid);">
-                        Votre inscription est deja enregistree. Ouvrez votre invitation pour confirmer votre presence.
+                        Votre inscription est déjà enregistrée. Ouvrez votre invitation pour confirmer votre présence.
                     </p>
                 </div>
             <?php else: ?>
@@ -257,7 +257,7 @@ HTML;
                             <label for="phone">Telephone (optionnel)</label>
                             <input id="phone" name="phone" type="text" placeholder="+242 06 000 0000" value="<?= htmlspecialchars($formPhone, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
-                        <button class="button primary" type="submit">Creer mon invitation</button>
+                        <button class="button primary" type="submit">Créer mon invitation</button>
                     </form>
                 </div>
             <?php endif; ?>
@@ -265,3 +265,4 @@ HTML;
     </div>
 </section>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

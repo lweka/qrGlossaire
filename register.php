@@ -7,7 +7,7 @@ $success = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Token de securite invalide.';
+        $errors[] = 'Token de sécurité invalide.';
     }
 
     $fullName = sanitizeInput($_POST['full_name'] ?? '');
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $emailDomain = strtolower(substr(strrchr($email, '@') ?: '', 1));
         if ($emailDomain !== 'gmail.com') {
-            $errors[] = 'Seules les adresses Gmail sont acceptees.';
+            $errors[] = 'Seules les adresses Gmail sont acceptées.';
         }
     }
 
@@ -103,13 +103,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$valid) {
                     $details = is_array($apiErrors) ? implode(', ', $apiErrors) : '';
                     if (is_array($apiErrors) && in_array('invalid-input-response', $apiErrors, true)) {
-                        $errors[] = 'Token reCAPTCHA invalide ou expire. Rechargez la page puis reessayez.';
+                        $errors[] = 'Token reCAPTCHA invalide ou expiré. Rechargez la page puis réessayez.';
                     } elseif (is_array($apiErrors) && in_array('invalid-keys', $apiErrors, true)) {
                         $secretSource = defined('RECAPTCHA_SECRET_KEY_SOURCE')
                             ? (string) RECAPTCHA_SECRET_KEY_SOURCE
                             : 'unknown';
                         $errors[] = APP_DEBUG
-                            ? 'Erreur reCAPTCHA. Detail: invalid-keys. Verifiez que RECAPTCHA_SITE_KEY et RECAPTCHA_SECRET_KEY sont de la meme paire (source active: ' . $secretSource . ').'
+                            ? 'Erreur reCAPTCHA. Détail: invalid-keys. Vérifiez que RECAPTCHA_SITE_KEY et RECAPTCHA_SECRET_KEY sont de la même paire (source active: ' . $secretSource . ').'
                             : 'Configuration reCAPTCHA invalide.';
                     } else {
                         $errors[] = (APP_DEBUG && $details !== '')
@@ -119,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } elseif ($action !== RECAPTCHA_ACTION_REGISTER) {
                     $errors[] = 'Verification reCAPTCHA invalide.';
                 } elseif ($riskScore < RECAPTCHA_MIN_SCORE) {
-                    $errors[] = 'Activite suspecte detectee. Veuillez reessayer.';
+                    $errors[] = 'Activité suspecte détectée. Veuillez réessayer.';
                 }
             }
         }
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare('SELECT id FROM users WHERE email = :email LIMIT 1');
             $stmt->execute(['email' => $email]);
             if ($stmt->fetch()) {
-                $errors[] = 'Un compte existe deja avec cet email.';
+                    $errors[] = 'Un compte existe déjà avec cet email.';
             } else {
                 $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, full_name, phone) VALUES (:email, :password_hash, :full_name, :phone)');
                 $stmt->execute([
@@ -195,7 +195,7 @@ HTML;
     <div class="form-card">
         <div class="section-title">
             <span>Inscription</span>
-            <h2>Creer un compte organisateur</h2>
+            <h2>Créer un compte organisateur</h2>
         </div>
         <?php if (!empty($errors)): ?>
             <div class="card" style="margin-bottom: 18px;">
@@ -218,9 +218,9 @@ HTML;
                 <input id="phone" name="phone" type="tel" placeholder="+242 06 000 0000" required>
             </div>
             <div class="form-group">
-                <label for="event_type">Type d'evenement</label>
+                <label for="event_type">Type d'événement</label>
                 <select id="event_type" name="event_type" required>
-                    <option value="">Selectionner</option>
+                    <option value="">Sélectionner</option>
                     <option value="wedding">Mariage</option>
                     <option value="birthday">Anniversaire</option>
                     <option value="corporate">Corporate</option>
@@ -232,7 +232,7 @@ HTML;
                 <input id="activity" name="activity" type="text" placeholder="Ex : Organisation de soirees, coaching, etc.">
             </div>
             <div class="form-group">
-                <label for="event_date">Date evenement</label>
+                <label for="event_date">Date événement</label>
                 <input id="event_date" name="event_date" type="date" required>
             </div>
             <div class="form-group">
@@ -245,7 +245,7 @@ HTML;
         </form>
         <?php else: ?>
             <div class="card" style="margin-bottom: 0;">
-                <p style="color: #0f172a; margin-bottom: 8px;">Demande envoyee avec succes.</p>
+                <p style="color: #0f172a; margin-bottom: 8px;">Demande envoyée avec succès.</p>
                 <p style="color: var(--text-mid); margin-bottom: 0;">Consultez la fenetre de confirmation pour la suite du processus.</p>
             </div>
         <?php endif; ?>
@@ -257,10 +257,10 @@ HTML;
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-body p-4 p-md-5 text-center">
                 <div class="register-success-icon">&#10003;</div>
-                <h4 id="registerSuccessTitle" class="mb-3">Inscription enregistree</h4>
-                <p class="text-secondary mb-2">Votre demande a bien ete recue. Le compte reste en attente jusqu a validation de votre paiement par l administration.</p>
-                <p class="text-secondary mb-2">Des que le paiement est confirme, vous recevez un email d activation depuis <strong>cartelplus-congo@cartelplus.site</strong> avec le lien pour activer votre espace.</p>
-                <p class="text-secondary mb-4">Verifiez aussi les onglets Promotions/Spam, puis marquez l adresse comme fiable pour recevoir les prochains messages.</p>
+                <h4 id="registerSuccessTitle" class="mb-3">Inscription enregistrée</h4>
+                <p class="text-secondary mb-2">Votre demande a bien été reçue. Le compte reste en attente jusqu'à validation de votre paiement par l'administration.</p>
+                <p class="text-secondary mb-2">Dès que le paiement est confirmé, vous recevez un email d'activation depuis <strong>cartelplus-congo@cartelplus.site</strong> avec le lien pour activer votre espace.</p>
+                <p class="text-secondary mb-4">Vérifiez aussi les onglets Promotions/Spam, puis marquez l'adresse comme fiable pour recevoir les prochains messages.</p>
                 <a class="btn btn-success px-4" href="<?= $baseUrl; ?>/">J'ai compris</a>
             </div>
         </div>
@@ -306,3 +306,4 @@ HTML;
 </script>
 <?php endif; ?>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

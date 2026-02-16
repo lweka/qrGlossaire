@@ -165,8 +165,8 @@ function seoNoindexScriptList(): array
 function seoDefaultMeta(): array
 {
     $appName = defined('APP_NAME') ? (string) APP_NAME : 'InviteQR';
-    $defaultTitle = $appName . ' | Invitations numeriques avec QR Code';
-    $defaultDescription = 'Plateforme pour creer, partager et valider des invitations numeriques avec QR Code.';
+    $defaultTitle = $appName . ' | Invitations numériques avec QR Code';
+    $defaultDescription = 'Plateforme pour créer, partager et valider des invitations numériques avec QR Code.';
     $defaultImage = seoAppAbsoluteUrl('/assets/images/Logo12.png');
     $scriptKey = seoScriptKey();
     $isNoindex = in_array($scriptKey, seoNoindexScriptList(), true) || strpos($scriptKey, 'admin/') === 0;
@@ -174,7 +174,7 @@ function seoDefaultMeta(): array
     $meta = [
         'title' => $defaultTitle,
         'description' => $defaultDescription,
-        'keywords' => 'invitation numerique, qr code, invitation evenement, gestion invites, check-in qr',
+        'keywords' => 'invitation numérique, qr code, invitation événement, gestion invités, check-in qr',
         'robots' => $isNoindex ? 'noindex,nofollow,noarchive' : 'index,follow,max-image-preview:large',
         'canonical' => seoCurrentCanonicalUrl(),
         'og_type' => 'website',
@@ -187,27 +187,27 @@ function seoDefaultMeta(): array
 
     switch ($scriptKey) {
         case 'index.php':
-            $meta['title'] = $appName . ' | Invitations QR Code pour evenements';
-            $meta['description'] = 'Creez des invitations numeriques elegantes, suivez les RSVPs et validez les invites avec QR Code.';
+            $meta['title'] = $appName . ' | Invitations QR Code pour événements';
+            $meta['description'] = 'Créez des invitations numériques élégantes, suivez les RSVPs et validez les invités avec QR Code.';
             $meta['canonical'] = seoAppAbsoluteUrl('/');
             break;
         case 'invitation.php':
-            $meta['title'] = 'Modeles d invitations numeriques | ' . $appName;
-            $meta['description'] = 'Decouvrez des modeles d invitations numeriques modernes adaptes a tous vos evenements.';
+            $meta['title'] = "Modèles d'invitations numériques | " . $appName;
+            $meta['description'] = "Découvrez des modèles d'invitations numériques modernes adaptés à tous vos événements.";
             $meta['og_type'] = 'article';
             $meta['canonical'] = seoAppAbsoluteUrl('/invitation');
             break;
         case 'login.php':
             $meta['title'] = 'Connexion organisateur | ' . $appName;
-            $meta['description'] = 'Connectez-vous a votre espace organisateur pour gerer vos evenements et invites.';
+            $meta['description'] = 'Connectez-vous à votre espace organisateur pour gérer vos événements et invités.';
             break;
         case 'register.php':
-            $meta['title'] = 'Creation de compte organisateur | ' . $appName;
-            $meta['description'] = 'Ouvrez votre compte organisateur et lancez vos invitations numeriques QR Code.';
+            $meta['title'] = 'Création de compte organisateur | ' . $appName;
+            $meta['description'] = 'Ouvrez votre compte organisateur et lancez vos invitations numériques QR Code.';
             break;
         case 'guest-register.php':
-            $meta['title'] = 'Inscription invite | ' . $appName;
-            $meta['description'] = 'Formulaire d inscription invite pour recevoir une invitation QR Code.';
+            $meta['title'] = 'Inscription invité | ' . $appName;
+            $meta['description'] = "Formulaire d'inscription invité pour recevoir une invitation QR Code.";
             break;
         case 'guest-invitation.php':
             $meta['title'] = 'Invitation personnelle | ' . $appName;
@@ -334,3 +334,4 @@ function seoNoindexRoutesForRobots(): array
         '/guest-qr',
     ];
 }
+

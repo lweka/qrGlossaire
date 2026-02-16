@@ -250,7 +250,7 @@ $pageFooterScripts = <<<HTML
         handlingScan = true;
         lastCode = code;
         lastScanAt = now;
-        setStatus('Code ' + code + ' detecte. Validation en cours...', 'success');
+        setStatus('Code ' + code + ' détecté. Validation en cours...', 'success');
 
         await stopScanner();
         window.location.href = buildCheckinUrl(code);
@@ -264,7 +264,7 @@ $pageFooterScripts = <<<HTML
 
         const cameraId = String(cameraSelect.value || selectedCameraId || '');
         if (cameraId === '') {
-            setStatus('Aucune camera selectionnee.', 'error');
+            setStatus('Aucune caméra sélectionnée.', 'error');
             return;
         }
 
@@ -289,9 +289,9 @@ $pageFooterScripts = <<<HTML
                 onCodeDetected
             );
             stopButton.disabled = false;
-            setStatus('Scanner actif. Presentez le QR code invite devant la camera.', 'success');
+            setStatus('Scanner actif. Présentez le QR code invité devant la caméra.', 'success');
         } catch (error) {
-            setStatus('Impossible de demarrer la camera. Autorisez la camera puis reessayez.', 'error');
+            setStatus('Impossible de démarrer la caméra. Autorisez la caméra puis réessayez.', 'error');
         }
     }
 
@@ -307,7 +307,7 @@ $pageFooterScripts = <<<HTML
             const devices = await Html5Qrcode.getCameras();
             cameraSelect.innerHTML = '';
             if (!Array.isArray(devices) || devices.length === 0) {
-                setStatus('Aucune camera detectee sur cet appareil.', 'error');
+                setStatus('Aucune caméra détectée sur cet appareil.', 'error');
                 startButton.disabled = true;
                 stopButton.disabled = true;
                 return;
@@ -316,7 +316,7 @@ $pageFooterScripts = <<<HTML
             devices.forEach((device, index) => {
                 const option = document.createElement('option');
                 option.value = device.id;
-                option.textContent = device.label || ('Camera ' + (index + 1));
+                option.textContent = device.label || ('Caméra ' + (index + 1));
                 cameraSelect.appendChild(option);
             });
 
@@ -327,9 +327,9 @@ $pageFooterScripts = <<<HTML
             selectedCameraId = backCamera ? backCamera.id : String(devices[0].id || '');
             cameraSelect.value = selectedCameraId;
             startButton.disabled = false;
-            setStatus('Camera detectee. Cliquez sur "Demarrer le scanner".');
+            setStatus('Caméra détectée. Cliquez sur "Démarrer le scanner".');
         } catch (error) {
-            setStatus('Acces camera refuse ou indisponible.', 'error');
+            setStatus('Accès caméra refusé ou indisponible.', 'error');
             startButton.disabled = true;
             stopButton.disabled = true;
         }
@@ -363,23 +363,23 @@ HTML;
     <main class="dashboard-content">
         <div class="section-title">
             <span>Check-in</span>
-            <h2>Scanner QR a l entree</h2>
+            <h2>Scanner QR à l'entrée</h2>
         </div>
 
         <div class="scan-top-actions">
-            <a class="button ghost" href="<?= $baseUrl; ?>/guests">Retour aux invites</a>
+            <a class="button ghost" href="<?= $baseUrl; ?>/guests">Retour aux invités</a>
             <a class="button ghost" href="<?= $baseUrl; ?>/dashboard">Retour au dashboard</a>
         </div>
 
         <div class="scan-layout">
             <section class="scan-reader-card">
                 <div class="scan-reader-header">
-                    <h3>Scan camera</h3>
+                    <h3>Scan caméra</h3>
                     <span class="badge">Validation immediate</span>
                 </div>
                 <div class="scan-controls">
-                    <select id="camera_id" aria-label="Camera"></select>
-                    <button id="start_scanner_btn" class="button primary" type="button" disabled>Demarrer le scanner</button>
+                    <select id="camera_id" aria-label="Caméra"></select>
+                    <button id="start_scanner_btn" class="button primary" type="button" disabled>Démarrer le scanner</button>
                     <button id="stop_scanner_btn" class="button ghost" type="button" disabled>Arreter</button>
                 </div>
                 <div id="qr-reader" class="scan-reader"></div>
@@ -387,28 +387,29 @@ HTML;
             </section>
 
             <aside class="scan-help-card">
-                <h3>Comment scanner a l entree</h3>
-                <p>L invite presente son QR code (sur telephone ou papier), puis l agent d accueil scanne ici.</p>
+                <h3>Comment scanner à l'entrée</h3>
+                <p>L'invité présente son QR code (sur téléphone ou papier), puis l'agent d'accueil scanne ici.</p>
                 <ol>
-                    <li>Ouvrir cette page sur le telephone de l equipe d accueil.</li>
-                    <li>Autoriser la camera puis demarrer le scanner.</li>
-                    <li>Pointer la camera vers le QR de l invite.</li>
-                    <li>Le systeme valide l entree automatiquement.</li>
+                    <li>Ouvrir cette page sur le téléphone de l'équipe d'accueil.</li>
+                    <li>Autoriser la caméra puis démarrer le scanner.</li>
+                    <li>Pointer la caméra vers le QR de l'invité.</li>
+                    <li>Le système valide l'entrée automatiquement.</li>
                 </ol>
 
                 <h3>Saisie manuelle (secours)</h3>
                 <form method="get" action="<?= $baseUrl; ?>/guest-checkin" class="scan-manual-form">
-                    <label for="manual_code">Code invite (ex: INV-923B755267)</label>
+                    <label for="manual_code">Code invité (ex: INV-923B755267)</label>
                     <input id="manual_code" name="code" type="text" placeholder="INV-XXXXXXXXXX" required>
                     <input type="hidden" name="scan" value="1">
                     <button class="button ghost" type="submit">Valider avec le code</button>
                 </form>
 
                 <p class="scan-tip">
-                    Le QR embarque deja le lien de check-in. Une application scanner externe peut aussi ouvrir le lien.
+                    Le QR embarque déjà le lien de check-in. Une application scanner externe peut aussi ouvrir le lien.
                 </p>
             </aside>
         </div>
     </main>
 </div>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

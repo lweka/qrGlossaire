@@ -1,6 +1,6 @@
     <footer class="footer">
         <div class="container">
-            <p>&copy; 2026 Cartelplus Congo. Plateforme d'invitations numeriques professionnelles.</p>
+            <p>&copy; 2026 Cartelplus Congo. Plateforme d'invitations numériques professionnelles.</p>
         </div>
     </footer>
     <?php
@@ -15,3 +15,4 @@
     <script src="<?= $baseUrl; ?>/assets/js/main.js?v=<?= htmlspecialchars($mainJsVersion, ENT_QUOTES, 'UTF-8'); ?>"></script>
 </body>
 </html>
+

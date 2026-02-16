@@ -9,7 +9,7 @@ $messageType = 'success';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Token de securite invalide.';
+        $message = 'Token de sécurité invalide.';
         $messageType = 'error';
     } else {
         $action = sanitizeInput($_POST['action'] ?? '');
@@ -77,7 +77,7 @@ $profile = $profileStmt->fetch() ?: ['full_name' => '', 'email' => '', 'phone' =
     <?php include __DIR__ . '/includes/organizer-sidebar.php'; ?>
     <main class="dashboard-content">
         <div class="section-title">
-            <span>Parametres</span>
+            <span>Paramètres</span>
             <h2>Configuration du compte</h2>
         </div>
         <div style="margin: 0 0 18px;">
@@ -113,7 +113,7 @@ $profile = $profileStmt->fetch() ?: ['full_name' => '', 'email' => '', 'phone' =
         </div>
 
         <div class="card">
-            <h3 style="margin-bottom: 12px;">Securite</h3>
+            <h3 style="margin-bottom: 12px;">Sécurité</h3>
             <form method="post">
                 <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
                 <input type="hidden" name="action" value="update-password">
@@ -135,3 +135,4 @@ $profile = $profileStmt->fetch() ?: ['full_name' => '', 'email' => '', 'phone' =
     </main>
 </div>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

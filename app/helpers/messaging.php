@@ -112,7 +112,7 @@ function getMessagingChannelStatus(string $channel, ?array $config = null): arra
     ];
 
     if (!in_array($channel, ['sms', 'whatsapp'], true)) {
-        $status['error'] = 'Canal non supporte.';
+        $status['error'] = 'Canal non supporté.';
         return $status;
     }
 
@@ -138,7 +138,7 @@ function getMessagingChannelStatus(string $channel, ?array $config = null): arra
             $from = trim((string) ($config['twilio']['sms_from'] ?? ''));
 
             if ($sid === '' || $token === '') {
-                $status['error'] = 'Configuration Twilio absente. Definir TWILIO_ACCOUNT_SID et TWILIO_AUTH_TOKEN.';
+                $status['error'] = 'Configuration Twilio absente. Définir TWILIO_ACCOUNT_SID et TWILIO_AUTH_TOKEN.';
             } elseif ($from === '') {
                 $status['error'] = 'TWILIO_SMS_FROM manquant.';
             } else {
@@ -154,7 +154,7 @@ function getMessagingChannelStatus(string $channel, ?array $config = null): arra
             $from = trim((string) ($config['infobip']['sms_from'] ?? ''));
 
             if ($baseUrl === '' || $apiKey === '') {
-                $status['error'] = 'Configuration Infobip absente. Definir INFOBIP_BASE_URL et INFOBIP_API_KEY.';
+                $status['error'] = 'Configuration Infobip absente. Définir INFOBIP_BASE_URL et INFOBIP_API_KEY.';
             } elseif ($from === '') {
                 $status['error'] = 'INFOBIP_SMS_FROM manquant.';
             } else {
@@ -164,7 +164,7 @@ function getMessagingChannelStatus(string $channel, ?array $config = null): arra
             return $status;
         }
 
-        $status['error'] = 'SMS_PROVIDER invalide. Valeurs supportees: twilio, infobip.';
+        $status['error'] = 'SMS_PROVIDER invalide. Valeurs supportées: twilio, infobip.';
         return $status;
     }
 
@@ -174,7 +174,7 @@ function getMessagingChannelStatus(string $channel, ?array $config = null): arra
         $from = trim((string) ($config['twilio']['whatsapp_from'] ?? ''));
 
         if ($sid === '' || $token === '') {
-            $status['error'] = 'Configuration Twilio absente. Definir TWILIO_ACCOUNT_SID et TWILIO_AUTH_TOKEN.';
+            $status['error'] = 'Configuration Twilio absente. Définir TWILIO_ACCOUNT_SID et TWILIO_AUTH_TOKEN.';
         } elseif ($from === '') {
             $status['error'] = 'TWILIO_WHATSAPP_FROM manquant.';
         } else {
@@ -189,7 +189,7 @@ function getMessagingChannelStatus(string $channel, ?array $config = null): arra
         $accessToken = trim((string) ($config['meta']['access_token'] ?? ''));
 
         if ($phoneNumberId === '' || $accessToken === '') {
-            $status['error'] = 'Configuration Meta WhatsApp absente. Definir WHATSAPP_META_PHONE_NUMBER_ID et WHATSAPP_META_ACCESS_TOKEN.';
+            $status['error'] = 'Configuration Meta WhatsApp absente. Définir WHATSAPP_META_PHONE_NUMBER_ID et WHATSAPP_META_ACCESS_TOKEN.';
         } else {
             $status['ready'] = true;
         }
@@ -197,7 +197,7 @@ function getMessagingChannelStatus(string $channel, ?array $config = null): arra
         return $status;
     }
 
-    $status['error'] = 'WHATSAPP_PROVIDER invalide. Valeurs supportees: twilio, meta.';
+    $status['error'] = 'WHATSAPP_PROVIDER invalide. Valeurs supportées: twilio, meta.';
     return $status;
 }
 
@@ -258,7 +258,7 @@ function messagingHttpPost(
 
     $curl = curl_init($url);
     if ($curl === false) {
-        $errorDetail = 'Impossible d initialiser la requete HTTP.';
+        $errorDetail = "Impossible d'initialiser la requête HTTP.";
         return null;
     }
 
@@ -301,14 +301,14 @@ function buildGuestDispatchText(
     string $customMessage = ''
 ): string {
     $safeRecipientName = trim($recipientName) === '' ? 'Invite' : trim($recipientName);
-    $safeEventTitle = trim($eventTitle) === '' ? 'notre evenement' : trim($eventTitle);
+    $safeEventTitle = trim($eventTitle) === '' ? 'notre événement' : trim($eventTitle);
     $safeEventDate = trim($eventDate);
     $safeEventLocation = trim($eventLocation);
     $safeCustomMessage = trim($customMessage);
 
     $lines = [];
     $lines[] = 'Bonjour ' . $safeRecipientName . ',';
-    $lines[] = 'Vous etes invite(e) a: ' . $safeEventTitle . '.';
+    $lines[] = 'Vous êtes invité(e) à: ' . $safeEventTitle . '.';
 
     if ($safeEventDate !== '') {
         $lines[] = 'Date: ' . $safeEventDate;
@@ -320,9 +320,9 @@ function buildGuestDispatchText(
         $lines[] = 'Message: ' . $safeCustomMessage;
     }
 
-    $lines[] = 'Consultez votre invitation et confirmez votre presence:';
+    $lines[] = 'Consultez votre invitation et confirmez votre présence:';
     $lines[] = $invitationLink;
-    $lines[] = 'Envoye via InviteQR.';
+    $lines[] = 'Envoyé via InviteQR.';
 
     return implode("\n", $lines);
 }
@@ -338,7 +338,7 @@ function sendTwilioChannelMessage(
     $providerMessageId = null;
 
     if (!in_array($channel, ['sms', 'whatsapp'], true)) {
-        $errorDetail = 'Canal non supporte.';
+        $errorDetail = 'Canal non supporté.';
         return false;
     }
 
@@ -351,7 +351,7 @@ function sendTwilioChannelMessage(
 
     $normalizedPhone = normalizePhoneToE164($rawPhone, (string) ($config['default_country_code'] ?? ''));
     if ($normalizedPhone === null) {
-        $errorDetail = 'Numero invalide. Utilisez un format international, ex: +243812345678.';
+        $errorDetail = 'Numéro invalide. Utilisez un format international, ex: +243812345678.';
         return false;
     }
 
@@ -409,10 +409,10 @@ function sendTwilioChannelMessage(
         $apiMessage = trim((string) ($response['raw'] ?? ''));
     }
     if ($apiMessage === '') {
-        $apiMessage = 'Reponse vide de Twilio.';
+        $apiMessage = 'Réponse vide de Twilio.';
     }
 
-    $errorDetail = 'Echec ' . strtoupper($channel) . ' (HTTP ' . $httpCode . '): ' . $apiMessage;
+    $errorDetail = 'Échec ' . strtoupper($channel) . ' (HTTP ' . $httpCode . '): ' . $apiMessage;
     return false;
 }
 
@@ -434,7 +434,7 @@ function sendInfobipSmsMessage(
 
     $normalizedPhone = normalizePhoneToE164($rawPhone, (string) ($config['default_country_code'] ?? ''));
     if ($normalizedPhone === null) {
-        $errorDetail = 'Numero invalide. Utilisez un format international, ex: +243812345678.';
+        $errorDetail = 'Numéro invalide. Utilisez un format international, ex: +243812345678.';
         return false;
     }
 
@@ -458,7 +458,7 @@ function sendInfobipSmsMessage(
     ];
     $payload = json_encode($payloadArray, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if (!is_string($payload) || $payload === '') {
-        $errorDetail = 'Impossible de preparer la charge SMS.';
+        $errorDetail = 'Impossible de préparer la charge SMS.';
         return false;
     }
 
@@ -501,10 +501,10 @@ function sendInfobipSmsMessage(
         $apiMessage = trim((string) ($response['raw'] ?? ''));
     }
     if ($apiMessage === '') {
-        $apiMessage = 'Reponse vide de Infobip.';
+        $apiMessage = 'Réponse vide de Infobip.';
     }
 
-    $errorDetail = 'Echec SMS (HTTP ' . $httpCode . '): ' . $apiMessage;
+    $errorDetail = 'Échec SMS (HTTP ' . $httpCode . '): ' . $apiMessage;
     return false;
 }
 
@@ -526,7 +526,7 @@ function sendMetaWhatsAppMessage(
 
     $normalizedPhone = normalizePhoneToE164($rawPhone, (string) ($config['default_country_code'] ?? ''));
     if ($normalizedPhone === null) {
-        $errorDetail = 'Numero invalide. Utilisez un format international, ex: +243812345678.';
+        $errorDetail = 'Numéro invalide. Utilisez un format international, ex: +243812345678.';
         return false;
     }
 
@@ -554,7 +554,7 @@ function sendMetaWhatsAppMessage(
     ];
     $payload = json_encode($payloadArray, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     if (!is_string($payload) || $payload === '') {
-        $errorDetail = 'Impossible de preparer la charge WhatsApp.';
+        $errorDetail = 'Impossible de préparer la charge WhatsApp.';
         return false;
     }
 
@@ -591,10 +591,10 @@ function sendMetaWhatsAppMessage(
         $apiMessage = trim((string) ($response['raw'] ?? ''));
     }
     if ($apiMessage === '') {
-        $apiMessage = 'Reponse vide de Meta Cloud API.';
+        $apiMessage = 'Réponse vide de Meta Cloud API.';
     }
 
-    $errorDetail = 'Echec WhatsApp (HTTP ' . $httpCode . '): ' . $apiMessage;
+    $errorDetail = 'Échec WhatsApp (HTTP ' . $httpCode . '): ' . $apiMessage;
     return false;
 }
 
@@ -678,3 +678,4 @@ function buildGuestManualShareText(
 ): string {
     return buildGuestDispatchText($recipientName, $eventTitle, $invitationLink, $eventDate, $eventLocation, $customMessage);
 }
+

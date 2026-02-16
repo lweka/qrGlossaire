@@ -61,9 +61,9 @@ sort($sliderImages, SORT_NATURAL | SORT_FLAG_CASE);
             <h1
                 class="fade-up hero-text-slider"
                 data-text-slider
-                data-text-phrases="Des invitations numeriques elegantes avec validation QR Code||Un QR Code unique pour securiser chaque acces invite||Seulement 0.3$ par invitation QR, simple et rentable||Des confirmations instantanees pour mieux organiser votre evenement||Un accueil rapide a l'entree sans file d'attente||Un suivi en temps reel pour piloter vos decisions"
+                data-text-phrases="Des invitations numériques élégantes avec validation QR Code||Un QR Code unique pour sécuriser chaque accès invité||Seulement 0.3$ par invitation QR, simple et rentable||Des confirmations instantanées pour mieux organiser votre événement||Un accueil rapide à l'entrée sans file d'attente||Un suivi en temps réel pour piloter vos décisions"
             >
-                <span class="hero-text-dynamic is-visible" data-text-current aria-live="polite">Des invitations numeriques elegantes avec validation QR Code</span>
+                <span class="hero-text-dynamic is-visible" data-text-current aria-live="polite">Des invitations numériques élégantes avec validation QR Code</span>
             </h1>
             <p class="fade-up delay-1">Créez des expériences mémorables pour vos cérémonies. Personnalisez vos invitations, automatisez les confirmations et scannez les QR codes à l'entrée en quelques secondes.</p>
             <div class="hero-actions fade-up delay-2">
@@ -205,3 +205,4 @@ sort($sliderImages, SORT_NATURAL | SORT_FLAG_CASE);
     </div>
 </section>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

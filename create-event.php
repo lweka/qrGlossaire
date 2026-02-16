@@ -112,13 +112,13 @@ $formData = [
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Token de securite invalide.';
+        $errors[] = 'Token de sécurité invalide.';
     }
 
     $creditSummary = getUserCreditSummary($pdo, $userId);
     $creditControlEnabled = !empty($creditSummary['credit_controls_enabled']);
     if ($creditControlEnabled && $creditSummary['event_remaining'] <= 0) {
-        $errors[] = 'Vous n avez plus de credit de creation evenement. Demandez une augmentation avant de continuer.';
+        $errors[] = "Vous n'avez plus de crédit de création d'événement. Demandez une augmentation avant de continuer.";
     }
 
     $formData['title'] = eventPostValue('title');
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = 'Veuillez renseigner tous les champs obligatoires.';
     }
     if (!in_array($formData['type'], $allowedEventTypes, true)) {
-        $errors[] = 'Type d evenement invalide.';
+        $errors[] = "Type d'événement invalide.";
     }
     if (!isValidHexColor($formData['color'])) {
         $formData['color'] = '#4a6fa5';
@@ -184,12 +184,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (empty($errors)) {
                     if (!is_dir($customDesignDirectory) && !mkdir($customDesignDirectory, 0775, true) && !is_dir($customDesignDirectory)) {
-                        $errors[] = 'Impossible de preparer le dossier de stockage des visuels.';
+                        $errors[] = 'Impossible de préparer le dossier de stockage des visuels.';
                     } else {
                         $safeFileName = makeSafeUploadFilename($userId, $extension);
                         $targetPath = $customDesignDirectory . '/' . $safeFileName;
                         if (!move_uploaded_file($tmpPath, $targetPath)) {
-                            $errors[] = 'Echec de sauvegarde du visuel personnalise.';
+                            $errors[] = 'Échec de sauvegarde du visuel personnalisé.';
                         } else {
                             @chmod($targetPath, 0644);
                             $coverImagePath = $customDesignWebDirectory . '/' . $safeFileName;
@@ -315,8 +315,8 @@ HTML;
     <?php include __DIR__ . '/includes/organizer-sidebar.php'; ?>
     <main class="dashboard-content">
         <div class="section-title">
-            <span>Evenement</span>
-            <h2>Creer un nouvel evenement</h2>
+            <span>Événement</span>
+            <h2>Créer un nouvel événement</h2>
         </div>
         <div style="margin: 0 0 18px;">
             <a class="button ghost" href="<?= $baseUrl; ?>/dashboard">Retour au dashboard</a>
@@ -324,13 +324,13 @@ HTML;
 
         <div class="card" style="margin-bottom: 18px;">
             <?php if ($creditControlEnabled): ?>
-                <p><strong>Credits evenement restants:</strong> <?= $creditSummary['event_remaining']; ?> / <?= $creditSummary['event_total']; ?></p>
-                <p style="margin-top: 6px; color: var(--text-mid);">Chaque creation d evenement consomme 1 credit.</p>
+                <p><strong>Crédits événement restants:</strong> <?= $creditSummary['event_remaining']; ?> / <?= $creditSummary['event_total']; ?></p>
+                <p style="margin-top: 6px; color: var(--text-mid);">Chaque création d'événement consomme 1 crédit.</p>
             <?php else: ?>
-                <p><strong>Credits evenement:</strong> mode libre temporaire (module credits non initialise).</p>
+                <p><strong>Crédits événement:</strong> mode libre temporaire (module crédits non initialisé).</p>
             <?php endif; ?>
             <?php if (!$creditSchemaReady): ?>
-                <p style="margin-top: 6px; color: #92400e;">Le module credits est en initialisation sur ce serveur.</p>
+                <p style="margin-top: 6px; color: #92400e;">Le module crédits est en initialisation sur ce serveur.</p>
             <?php endif; ?>
         </div>
 
@@ -344,7 +344,7 @@ HTML;
             <?php if (!$canCreateEvent): ?>
                 <div class="card">
                     <p style="color: #92400e; margin-bottom: 10px;">
-                        Aucun credit evenement disponible. Vous devez demander une augmentation de credits avant de creer un nouvel evenement.
+                        Aucun crédit événement disponible. Vous devez demander une augmentation de crédits avant de créer un nouvel événement.
                     </p>
                     <a class="button primary" href="<?= $baseUrl; ?>/dashboard">Demander une augmentation</a>
                 </div>
@@ -353,13 +353,13 @@ HTML;
                     <form method="post" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
                         <div class="form-group">
-                            <label for="title">Titre evenement</label>
+                            <label for="title">Titre événement</label>
                             <input id="title" name="title" type="text" placeholder="Mariage de Clarisse & Jonas" required value="<?= htmlspecialchars($formData['title'], ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                         <div class="form-group">
                             <label for="type">Type</label>
                             <select id="type" name="type" required>
-                                <option value="">Selectionner</option>
+                                <option value="">Sélectionner</option>
                                 <option value="wedding" <?= $formData['type'] === 'wedding' ? 'selected' : ''; ?>>Mariage</option>
                                 <option value="birthday" <?= $formData['type'] === 'birthday' ? 'selected' : ''; ?>>Anniversaire</option>
                                 <option value="corporate" <?= $formData['type'] === 'corporate' ? 'selected' : ''; ?>>Corporate</option>
@@ -406,7 +406,7 @@ HTML;
                                 <?php endforeach; ?>
                             </select>
                             <p style="margin-top: 6px; color: var(--text-mid); font-size: 13px;">
-                                Ce visuel sera affiche en haut de la page invite (`guest-invitation`).
+                                Ce visuel sera affiché en haut de la page invité (`guest-invitation`).
                             </p>
                             <?php if (!empty($modelDesignFiles)): ?>
                                 <div class="design-grid">
@@ -423,7 +423,7 @@ HTML;
                                 Taille max: 5 MB. Si vous uploadez une image, elle remplace le modele selectionne.
                             </p>
                         </div>
-                        <button class="button primary" type="submit">Enregistrer l evenement</button>
+                        <button class="button primary" type="submit">Enregistrer l'événement</button>
                     </form>
                 </div>
             <?php endif; ?>
@@ -437,9 +437,9 @@ HTML;
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-body p-4 p-md-5 text-center">
                 <div class="event-success-icon">&#10003;</div>
-                <h4 id="eventCreatedTitle" class="mb-3">Evenement valide</h4>
-                <p class="text-secondary mb-2">Votre evenement a ete cree avec succes.</p>
-                <p class="text-secondary mb-4">Vous allez etre redirige vers le dashboard pour continuer la gestion des invites.</p>
+                <h4 id="eventCreatedTitle" class="mb-3">Événement valide</h4>
+                <p class="text-secondary mb-2">Votre événement a été créé avec succès.</p>
+                <p class="text-secondary mb-4">Vous allez être redirigé vers le dashboard pour continuer la gestion des invités.</p>
                 <div class="d-flex justify-content-center gap-2">
                     <button class="btn btn-outline-secondary px-4" type="button" data-bs-dismiss="modal">Fermer</button>
                     <a class="btn btn-success px-4" href="<?= $baseUrl; ?>/dashboard">Retour dashboard</a>
@@ -450,3 +450,4 @@ HTML;
 </div>
 <?php endif; ?>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

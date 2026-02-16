@@ -187,7 +187,7 @@ if ($code !== '') {
 $requestMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 if ($requestMethod === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $message = 'Token de securite invalide.';
+        $message = 'Token de sécurité invalide.';
         $messageType = 'error';
     } elseif (!$guest) {
         $message = 'Invitation introuvable.';
@@ -197,10 +197,10 @@ if ($requestMethod === 'POST') {
         if ($action === 'rsvp') {
             $status = sanitizeInput($_POST['status'] ?? '');
             if (!in_array($status, ['confirmed', 'declined'], true)) {
-                $message = 'Reponse invalide.';
+                $message = 'Réponse invalide.';
                 $messageType = 'error';
             } elseif ((string) ($guest['rsvp_status'] ?? 'pending') !== 'pending') {
-                $message = 'Votre reponse a deja ete enregistree.';
+                $message = 'Votre réponse a déjà été enregistrée.';
                 $messageType = 'warning';
             } else {
                 $updateStmt = $pdo->prepare('UPDATE guests SET rsvp_status = :rsvp_status WHERE id = :id');
@@ -211,10 +211,10 @@ if ($requestMethod === 'POST') {
 
                 $guest = findGuestByCode($pdo, $code, $guestCustomAnswersEnabled);
                 if ($status === 'confirmed') {
-                    $message = 'Merci. Votre presence est confirmee.';
+                    $message = 'Merci. Votre présence est confirmée.';
                     $messageType = 'success';
                 } else {
-                    $message = 'Votre absence a bien ete enregistree.';
+                    $message = 'Votre absence a bien été enregistrée.';
                     $messageType = 'warning';
                 }
             }
@@ -260,7 +260,7 @@ if ($guest) {
     $qrDownloadPath = $baseUrl . '/guest-qr?code=' . rawurlencode((string) $guest['guest_code']) . '&download=1';
 }
 
-$displayTitle = normalizeDisplayText((string) ($guest['title'] ?? 'Evenement'));
+$displayTitle = normalizeDisplayText((string) ($guest['title'] ?? 'Événement'));
 $displayGuestName = normalizeDisplayText((string) ($guest['full_name'] ?? ''));
 $displayDate = normalizeDisplayText((string) ($guest['event_date'] ?? ''));
 $displayLocation = normalizeDisplayText((string) ($guest['location'] ?? ''));
@@ -357,18 +357,18 @@ HTML;
                 <?php if ($eventMessage !== ''): ?>
                     <p><strong>Message:</strong> <?= htmlspecialchars($eventMessage, ENT_QUOTES, 'UTF-8'); ?></p>
                 <?php endif; ?>
-                <p><strong>Code invite:</strong> <?= htmlspecialchars($displayCode, ENT_QUOTES, 'UTF-8'); ?></p>
+                <p><strong>Code invité:</strong> <?= htmlspecialchars($displayCode, ENT_QUOTES, 'UTF-8'); ?></p>
                 <p><strong>Statut RSVP:</strong> <?= htmlspecialchars($displayRsvp, ENT_QUOTES, 'UTF-8'); ?></p>
             </div>
 
             <?php if (($guest['rsvp_status'] ?? 'pending') === 'pending'): ?>
                 <div class="card" style="margin-bottom: 18px;">
-                    <h3 style="margin-bottom: 12px;">Confirmer votre reponse</h3>
+                    <h3 style="margin-bottom: 12px;">Confirmer votre réponse</h3>
                     <form method="post" style="display: flex; gap: 10px; flex-wrap: wrap;">
                         <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
                         <input type="hidden" name="action" value="rsvp">
                         <input type="hidden" name="status" value="confirmed">
-                        <button class="button primary" type="submit">Je confirme ma presence</button>
+                        <button class="button primary" type="submit">Je confirme ma présence</button>
                     </form>
                     <form method="post" style="margin-top: 10px;">
                         <input type="hidden" name="csrf_token" value="<?= csrfToken(); ?>">
@@ -380,24 +380,24 @@ HTML;
             <?php elseif (($guest['rsvp_status'] ?? 'pending') === 'confirmed'): ?>
                 <div class="card" style="margin-bottom: 18px;">
                     <p style="color: #166534; margin: 0;">
-                        Votre presence est deja confirmee. Votre QR code d acces est actif ci-dessous.
+                        Votre présence est déjà confirmée. Votre QR code d'accès est actif ci-dessous.
                     </p>
                 </div>
             <?php else: ?>
                 <div class="card" style="margin-bottom: 18px;">
                     <p style="color: #92400e; margin: 0;">
-                        Votre reponse est deja enregistree. Si vous devez modifier ce statut, contactez l organisateur.
+                        Votre réponse est déjà enregistrée. Si vous devez modifier ce statut, contactez l'organisateur.
                     </p>
                 </div>
             <?php endif; ?>
 
             <?php if (($guest['rsvp_status'] ?? 'pending') === 'confirmed'): ?>
                 <div class="card">
-                    <h3 style="margin-bottom: 12px;">Votre QR code d acces</h3>
-                    <p style="margin-bottom: 14px;">Presentez ce QR code a l entree pour valider votre arrivee.</p>
+                    <h3 style="margin-bottom: 12px;">Votre QR code d'accès</h3>
+                    <p style="margin-bottom: 14px;">Présentez ce QR code à l'entrée pour valider votre arrivée.</p>
                     <div class="qr-box">
                         <img src="<?= htmlspecialchars($qrImageUrl, ENT_QUOTES, 'UTF-8'); ?>" alt="QR code personnel">
-                        <a class="button primary" href="<?= htmlspecialchars($qrDownloadPath, ENT_QUOTES, 'UTF-8'); ?>">Telecharger mon QR</a>
+                        <a class="button primary" href="<?= htmlspecialchars($qrDownloadPath, ENT_QUOTES, 'UTF-8'); ?>">Télécharger mon QR</a>
                         <a class="button ghost" href="<?= htmlspecialchars($checkinLink, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">Lien de validation</a>
                     </div>
                 </div>
@@ -406,3 +406,4 @@ HTML;
     </div>
 </section>
 <?php include __DIR__ . '/includes/footer.php'; ?>
+

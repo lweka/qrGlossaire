@@ -216,7 +216,7 @@ function sendActivationLinkEmail(string $recipientEmail, string $recipientName, 
     $safeRecipientName = trim($recipientName) === '' ? 'Organisateur' : trim($recipientName);
     $subject = 'Action requise: activez votre compte ' . $appName . ' (paiement confirme)';
     $safeActivationLink = htmlspecialchars($activationLink, ENT_QUOTES, 'UTF-8');
-    $previewText = 'Paiement confirme. Activez votre compte pour acceder a votre espace.';
+    $previewText = 'Paiement confirmé. Activez votre compte pour accéder à votre espace.';
 
     $mailConfig = getMailerConfig();
     $fromName = $mailConfig['from_name'] ?? 'Support';
@@ -231,23 +231,23 @@ function sendActivationLinkEmail(string $recipientEmail, string $recipientName, 
     $htmlBody .= '<tr><td style="padding:20px 28px;background:#0f766e;color:#ffffff;"><h1 style="margin:0;font-size:20px;line-height:1.3;">' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . '</h1><p style="margin:8px 0 0 0;font-size:14px;opacity:0.92;">Activation de votre compte client</p></td></tr>';
     $htmlBody .= '<tr><td style="padding:24px 28px;">';
     $htmlBody .= '<p style="margin:0 0 14px 0;">Bonjour ' . htmlspecialchars($safeRecipientName, ENT_QUOTES, 'UTF-8') . ',</p>';
-    $htmlBody .= '<p style="margin:0 0 14px 0;">Votre paiement a ete valide. Pour terminer votre inscription et acceder a votre espace de configuration, activez votre compte maintenant.</p>';
+    $htmlBody .= '<p style="margin:0 0 14px 0;">Votre paiement a été validé. Pour terminer votre inscription et accéder à votre espace de configuration, activez votre compte maintenant.</p>';
     $htmlBody .= '<p style="text-align:center;margin:24px 0;"><a href="' . $safeActivationLink . '" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:700;">Activer mon compte</a></p>';
     $htmlBody .= '<p style="margin:0 0 10px 0;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>';
     $htmlBody .= '<p style="margin:0 0 14px 0;word-break:break-all;"><a href="' . $safeActivationLink . '">' . $safeActivationLink . '</a></p>';
     $htmlBody .= '<p style="margin:0 0 8px 0;">Informations importantes :</p>';
-    $htmlBody .= '<ul style="margin:0 0 16px 18px;padding:0;"><li>Ce lien expire dans ' . $tokenExpiryDays . ' jours.</li><li>Cet email est envoye suite a votre demande d inscription.</li></ul>';
-    $htmlBody .= '<p style="margin:0;">Besoin d aide ? Repondez a cet email ou contactez le support.</p>';
+    $htmlBody .= '<ul style="margin:0 0 16px 18px;padding:0;"><li>Ce lien expire dans ' . $tokenExpiryDays . ' jours.</li><li>Cet email est envoyé suite à votre demande d\'inscription.</li></ul>';
+    $htmlBody .= '<p style="margin:0;">Besoin d\'aide ? Répondez à cet email ou contactez le support.</p>';
     $htmlBody .= '</td></tr>';
-    $htmlBody .= '<tr><td style="padding:14px 28px;background:#f9fafb;color:#6b7280;font-size:12px;line-height:1.5;">Email transactionnel automatique envoye par ' . $safeFromName . '. Support: ' . $safeReplyToEmail . '.</td></tr>';
+    $htmlBody .= '<tr><td style="padding:14px 28px;background:#f9fafb;color:#6b7280;font-size:12px;line-height:1.5;">Email transactionnel automatique envoyé par ' . $safeFromName . '. Support: ' . $safeReplyToEmail . '.</td></tr>';
     $htmlBody .= '</table></td></tr></table></body></html>';
 
     $plainBody = "Bonjour {$safeRecipientName},\n\n";
-    $plainBody .= "Votre paiement a ete valide.\n";
+    $plainBody .= "Votre paiement a été validé.\n";
     $plainBody .= "Pour terminer votre inscription, activez votre compte via ce lien:\n{$activationLink}\n\n";
     $plainBody .= "Ce lien expire dans {$tokenExpiryDays} jours.\n";
-    $plainBody .= "Cet email est envoye suite a votre demande d inscription.\n\n";
-    $plainBody .= "Besoin d aide ? Repondez a cet email.\n\n";
+    $plainBody .= "Cet email est envoyé suite à votre demande d'inscription.\n\n";
+    $plainBody .= "Besoin d'aide ? Répondez à cet email.\n\n";
     $plainBody .= "Cordialement,\n{$fromName}";
 
     return sendTransactionalEmail($recipientEmail, $recipientName, $subject, $htmlBody, $plainBody, $errorDetail);
@@ -265,7 +265,7 @@ function sendGuestInvitationEmail(
 ): bool {
     $appName = defined('APP_NAME') ? (string) APP_NAME : 'InviteQR';
     $safeRecipientName = trim($recipientName) === '' ? 'Invite' : trim($recipientName);
-    $safeEventTitle = trim($eventTitle) === '' ? 'Votre evenement' : trim($eventTitle);
+    $safeEventTitle = trim($eventTitle) === '' ? 'Votre événement' : trim($eventTitle);
     $subject = 'Invitation: ' . $safeEventTitle;
 
     $mailConfig = getMailerConfig();
@@ -282,7 +282,7 @@ function sendGuestInvitationEmail(
     $htmlBody .= '<tr><td style="padding:20px 28px;background:#1e3a8a;color:#ffffff;"><h1 style="margin:0;font-size:20px;line-height:1.3;">' . htmlspecialchars($safeEventTitle, ENT_QUOTES, 'UTF-8') . '</h1><p style="margin:8px 0 0 0;font-size:14px;opacity:0.95;">Invitation officielle</p></td></tr>';
     $htmlBody .= '<tr><td style="padding:24px 28px;">';
     $htmlBody .= '<p style="margin:0 0 14px 0;">Bonjour ' . htmlspecialchars($safeRecipientName, ENT_QUOTES, 'UTF-8') . ',</p>';
-    $htmlBody .= '<p style="margin:0 0 14px 0;">Vous etes invite(e) a participer a notre evenement. Merci de consulter votre invitation et de confirmer votre presence.</p>';
+    $htmlBody .= '<p style="margin:0 0 14px 0;">Vous êtes invité(e) à participer à notre événement. Merci de consulter votre invitation et de confirmer votre présence.</p>';
     if ($safeEventDate !== '') {
         $htmlBody .= '<p style="margin:0 0 8px 0;"><strong>Date:</strong> ' . htmlspecialchars($safeEventDate, ENT_QUOTES, 'UTF-8') . '</p>';
     }
@@ -296,11 +296,11 @@ function sendGuestInvitationEmail(
     $htmlBody .= '<p style="margin:0 0 10px 0;">Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :</p>';
     $htmlBody .= '<p style="margin:0;word-break:break-all;"><a href="' . $safeInvitationLink . '">' . $safeInvitationLink . '</a></p>';
     $htmlBody .= '</td></tr>';
-    $htmlBody .= '<tr><td style="padding:14px 28px;background:#f9fafb;color:#6b7280;font-size:12px;line-height:1.5;">Email envoye via ' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . ' - ' . htmlspecialchars((string) $fromName, ENT_QUOTES, 'UTF-8') . '</td></tr>';
+    $htmlBody .= '<tr><td style="padding:14px 28px;background:#f9fafb;color:#6b7280;font-size:12px;line-height:1.5;">Email envoyé via ' . htmlspecialchars($appName, ENT_QUOTES, 'UTF-8') . ' - ' . htmlspecialchars((string) $fromName, ENT_QUOTES, 'UTF-8') . '</td></tr>';
     $htmlBody .= '</table></td></tr></table></body></html>';
 
     $plainBody = "Bonjour {$safeRecipientName},\n\n";
-    $plainBody .= "Vous etes invite(e) a l evenement: {$safeEventTitle}\n";
+    $plainBody .= "Vous êtes invité(e) à l'événement: {$safeEventTitle}\n";
     if ($safeEventDate !== '') {
         $plainBody .= "Date: {$safeEventDate}\n";
     }
@@ -310,8 +310,9 @@ function sendGuestInvitationEmail(
     if ($safeCustomMessage !== '') {
         $plainBody .= "Message: {$safeCustomMessage}\n";
     }
-    $plainBody .= "\nConsultez votre invitation et confirmez votre presence:\n{$invitationLink}\n\n";
+    $plainBody .= "\nConsultez votre invitation et confirmez votre présence:\n{$invitationLink}\n\n";
     $plainBody .= "Cordialement,\n{$fromName}";
 
     return sendTransactionalEmail($recipientEmail, $recipientName, $subject, $htmlBody, $plainBody, $errorDetail);
 }
+

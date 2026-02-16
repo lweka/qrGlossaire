@@ -20,13 +20,13 @@ try {
 } catch (PDOException $exception) {
     $adminTableReady = false;
     $errors[] = APP_DEBUG
-        ? 'Table admins introuvable. Creez-la d abord. Detail: ' . $exception->getMessage()
+        ? "Table admins introuvable. Créez-la d'abord. Détail: " . $exception->getMessage()
         : 'La configuration administrateur est incomplete.';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        $errors[] = 'Token de securite invalide.';
+        $errors[] = 'Token de sécurité invalide.';
     }
 
     $email = sanitizeInput($_POST['email'] ?? '');
@@ -75,8 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <?php if ($adminTableReady && !$hasAdminAccount): ?>
             <div class="card" style="margin-bottom: 18px;">
-                <p style="color: #0f172a; margin-bottom: 8px;">Aucun administrateur principal n existe encore.</p>
-                <p style="color: var(--text-mid); margin-bottom: 8px;">Creez le premier admin avec :</p>
+                <p style="color: #0f172a; margin-bottom: 8px;">Aucun administrateur principal n'existe encore.</p>
+                <p style="color: var(--text-mid); margin-bottom: 8px;">Créez le premier admin avec :</p>
                 <code style="display:block; word-break: break-all;">php scripts/create_admin.php --email=\"votre@email.com\" --password=\"MotDePasseFort123!\" --name=\"Admin Principal\"</code>
             </div>
         <?php endif; ?>
@@ -97,3 +97,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </section>
 <?php include __DIR__ . '/../includes/footer.php'; ?>
+

@@ -138,21 +138,21 @@ document.addEventListener("DOMContentLoaded", () => {
       );
     }
     if (date) {
-      date.textContent = safeValue(dataset.invitationDate, "A definir");
+      date.textContent = safeValue(dataset.invitationDate, "À définir");
     }
     if (location) {
-      location.textContent = safeValue(dataset.invitationLocation, "A definir");
+      location.textContent = safeValue(dataset.invitationLocation, "À définir");
     }
     if (dressCode) {
       dressCode.textContent = safeValue(
         dataset.invitationDressCode,
-        "A definir"
+        "À définir"
       );
     }
     if (rsvpDeadline) {
       rsvpDeadline.textContent = safeValue(
         dataset.invitationRsvpDeadline,
-        "A definir"
+        "À définir"
       );
     }
   };
@@ -181,7 +181,7 @@ document.addEventListener("DOMContentLoaded", () => {
           activeSlide?.dataset?.invitationHeadline || "cette invitation";
         const deadline =
           activeSlide?.dataset?.invitationRsvpDeadline || "la date prevue";
-        rsvpStatus.textContent = `Presence confirmee pour ${invitationName}. Reponse enregistree avant ${deadline}.`;
+        rsvpStatus.textContent = `Présence confirmée pour ${invitationName}. Réponse enregistrée avant ${deadline}.`;
         rsvpStatus.classList.add("is-success");
       });
     }
@@ -261,3 +261,4 @@ document.addEventListener("DOMContentLoaded", () => {
     initializeSlider(slider);
   });
 });
+

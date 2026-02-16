@@ -9,7 +9,7 @@ try {
     $requestsOk = isCreditRequestModuleEnabled($pdo, true);
     $communicationsOk = isCommunicationLogModuleEnabled($pdo, true);
 
-    echo "Migration credits: " . (($quotaOk && $requestsOk && $communicationsOk) ? "OK" : "PARTIAL") . "\n";
+    echo "Migration crédits: " . (($quotaOk && $requestsOk && $communicationsOk) ? "OK" : "PARTIAL") . "\n";
     echo "- users.invitation_credit_total: " . ($quotaOk ? "OK" : "MISSING") . "\n";
     echo "- users.event_credit_total: " . ($quotaOk ? "OK" : "MISSING") . "\n";
     echo "- table credit_requests: " . ($requestsOk ? "OK" : "MISSING") . "\n";
@@ -21,7 +21,8 @@ try {
 
     exit(0);
 } catch (Throwable $exception) {
-    fwrite(STDERR, "Migration credits: ERROR\n");
+    fwrite(STDERR, "Migration crédits: ERROR\n");
     fwrite(STDERR, $exception->getMessage() . "\n");
     exit(1);
 }
+
