@@ -543,8 +543,9 @@ HTML;
             <span>Invites</span>
             <h2>Gestion des invites</h2>
         </div>
-        <div style="margin: 0 0 18px;">
+        <div style="margin: 0 0 18px; display: flex; gap: 10px; flex-wrap: wrap;">
             <a class="button ghost" href="<?= $baseUrl; ?>/dashboard">Retour au dashboard</a>
+            <a class="button primary" href="<?= $baseUrl; ?>/scan-checkin">Scanner a l entree</a>
         </div>
 
         <div class="card" style="margin-bottom: 18px;">
