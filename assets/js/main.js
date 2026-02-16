@@ -6,6 +6,46 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  const organizerSidebar = document.querySelector("[data-dashboard-sidebar]");
+  if (organizerSidebar) {
+    const sidebarToggle = organizerSidebar.querySelector("[data-sidebar-toggle]");
+    const sidebarNav = organizerSidebar.querySelector(".sidebar-nav");
+
+    if (sidebarToggle && sidebarNav) {
+      organizerSidebar.setAttribute("data-collapsible-ready", "true");
+
+      const setSidebarState = (isOpen) => {
+        organizerSidebar.classList.toggle("is-open", isOpen);
+        sidebarToggle.setAttribute("aria-expanded", String(isOpen));
+        sidebarToggle.textContent = isOpen ? "Fermer" : "Menu";
+      };
+
+      setSidebarState(false);
+
+      sidebarToggle.addEventListener("click", () => {
+        const shouldOpen = !organizerSidebar.classList.contains("is-open");
+        setSidebarState(shouldOpen);
+      });
+
+      organizerSidebar.querySelectorAll(".sidebar-link").forEach((link) => {
+        link.addEventListener("click", () => {
+          if (window.matchMedia("(max-width: 1024px)").matches) {
+            setSidebarState(false);
+          }
+        });
+      });
+
+      const syncSidebarForViewport = () => {
+        if (!window.matchMedia("(max-width: 1024px)").matches) {
+          setSidebarState(false);
+        }
+      };
+
+      window.addEventListener("resize", syncSidebarForViewport);
+      syncSidebarForViewport();
+    }
+  }
+
   const statCounters = document.querySelectorAll("[data-count]");
   statCounters.forEach((counter) => {
     const target = Number(counter.dataset.count || 0);
