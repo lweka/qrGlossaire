@@ -12,12 +12,14 @@ $organizerMenu = [
 ?>
 <aside class="sidebar">
     <h3>Tableau de bord</h3>
-    <?php foreach ($organizerMenu as $menuKey => $menuItem): ?>
-        <a
-            class="<?= $dashboardSection === $menuKey ? 'active' : ''; ?>"
-            href="<?= $baseUrl; ?><?= $menuItem['path']; ?>"
-        >
-            <?= htmlspecialchars($menuItem['label'], ENT_QUOTES, 'UTF-8'); ?>
-        </a>
-    <?php endforeach; ?>
+    <nav class="sidebar-nav" aria-label="Navigation organisateur">
+        <?php foreach ($organizerMenu as $menuKey => $menuItem): ?>
+            <a
+                class="sidebar-link <?= $dashboardSection === $menuKey ? 'active' : ''; ?>"
+                href="<?= $baseUrl; ?><?= $menuItem['path']; ?>"
+            >
+                <?= htmlspecialchars($menuItem['label'], ENT_QUOTES, 'UTF-8'); ?>
+            </a>
+        <?php endforeach; ?>
+    </nav>
 </aside>
